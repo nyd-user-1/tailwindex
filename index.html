@@ -222,13 +222,23 @@ body.dragging iframe { pointer-events: none; }
 .ptools .seg { flex: none; }
 .menu-sec { display: grid; gap: 6px; justify-items: start; }
 .menu .idx-sel { border-top: 0; padding-top: 0; }
-.lower { flex: 0 0 50%; min-height: 0; display: flex; flex-direction: column; border-top: 1px solid var(--line); background: var(--panel-2); }
+.lower { flex: 0 0 50%; min-height: 0; display: flex; flex-direction: column; border: 1px solid var(--line); border-bottom: 0; border-radius: 14px 14px 0 0; background: var(--panel); overflow: hidden; }
+.lower-head { flex: none; display: flex; align-items: center; width: 100%; height: 52px; padding: 0 20px; border: 0; background: color-mix(in srgb, var(--fg) 5%, var(--panel)); color: var(--fg); font-size: 15px; text-align: left; }
+.lower-head strong { font-weight: 600; }
+.lower-head svg { width: 18px; height: 18px; fill: none; stroke: var(--muted); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; transition: transform 0.15s; }
+.lower-head[aria-expanded="false"] svg { transform: rotate(180deg); }
+.lower-body { flex: 1; min-height: 0; display: flex; flex-direction: column; border-top: 1px solid var(--line); }
+.lower[data-closed="1"] { flex: 0 0 auto !important; }
+.lower[data-closed="1"] .lower-body { display: none; }
+.lower[data-closed="1"] .lower-head { height: 56px; }
+.idx-top { flex: none; display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: var(--panel); }
+.resizer[hidden] { display: none; }
 .gen[hidden], .editor[hidden], .tree[hidden] { display: none !important; }
 .gen-head { pointer-events: none; cursor: default; }
 .gen-head > svg { display: none; }
 .lower [hidden] { display: none !important; }
 .index { flex: 1; min-height: 0; overflow: auto; background: var(--panel); }
-.idx-bar { display: none; position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 16px; background: var(--panel-2); border-bottom: 1px solid var(--line); }
+.idx-bar { display: none !important; position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 16px; background: var(--panel-2); border-bottom: 1px solid var(--line); }
 .idx-search { position: relative; flex: 0 1 520px; min-width: 0; }
 .lower-tabs .idx-search { flex: 1 1 auto; margin-right: 8px; }
 .lower-tabs .idx-search input { height: 32px; }
@@ -423,7 +433,9 @@ body.dragging iframe { pointer-events: none; }
       </div>
       <div class="resizer" id="resizer" role="separator" aria-orientation="horizontal" aria-label="Resize editor and index" tabindex="0"></div>
       <div class="lower" id="lower">
-        <div class="lower-tabs tabs">
+        <button class="lower-head" id="lowerHead" type="button" aria-expanded="true" aria-controls="lowerBody"><strong>Index</strong><span class="spacer"></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+        <div class="lower-body" id="lowerBody">
+        <div class="lower-tabs idx-top">
           <div class="idx-search"><input id="idxQ" type="search" placeholder="Search a utility, e.g. grid-cols or padding" aria-label="Search utilities" autocomplete="off"><kbd id="kbdHint">⌘ K</kbd></div>
           <button class="xtog" id="xtog" type="button" aria-expanded="false" title="Expand or collapse all sections"><span id="xtogLbl"></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
         </div>
@@ -435,6 +447,7 @@ body.dragging iframe { pointer-events: none; }
         <div class="idx-list" id="idxList"></div>
         <p class="idx-empty" id="idxEmpty" hidden>No utility matches that search.</p>
       </div>
+        </div>
       </div>
     </section>
 
@@ -474,15 +487,18 @@ body.dragging iframe { pointer-events: none; }
     '  <div class="col-span-full row-start-4 bg-[color:var(--pattern-fg)]"></div>',
     '  <div class="col-start-3 row-start-3 flex max-w-lg flex-col bg-gray-100 p-2 dark:bg-white/10">',
     '    <div class="rounded-xl bg-white p-10 text-sm/7 text-gray-700 dark:bg-gray-950 dark:text-gray-300">',
+    '      <div class="mb-10 flex items-center gap-2.5"><svg class="h-6 w-6 text-sky-500" viewBox="0 0 32 32" aria-hidden="true"><rect x="3" y="6" width="26" height="5" rx="2.5" fill="currentColor"/><rect x="3" y="13.5" width="17" height="5" rx="2.5" fill="currentColor"/><rect x="3" y="21" width="22" height="5" rx="2.5" fill="currentColor"/></svg><span class="text-xl font-semibold text-gray-950 dark:text-white">tailwind<b class="font-semibold text-sky-500">ex</b></span></div>',
     '      <div class="space-y-6">',
     '        <p>An advanced online playground for Tailwind CSS, including support for things like:</p>',
-    '        <ul class="space-y-3">',
-    '          <li class="flex gap-3"><span class="text-sky-500">&#10003;</span>Customizing your theme with @theme</li>',
-    '          <li class="flex gap-3"><span class="text-sky-500">&#10003;</span>Adding custom utilities with @utility</li>',
-    '          <li class="flex gap-3"><span class="text-sky-500">&#10003;</span>Adding custom variants with @variant</li>',
-    '          <li class="flex gap-3"><span class="text-sky-500">&#10003;</span>Instant preview and generated CSS</li>',
+    '        <ul role="list" class="space-y-3">',
+    '          <li class="flex"><svg class="h-[1lh] w-5.5 shrink-0" viewBox="0 0 22 22" fill="none" stroke-linecap="square"><circle cx="11" cy="11" r="11" class="fill-sky-400/25" /><circle cx="11" cy="11" r="10.5" class="stroke-sky-400/25" /><path d="M8 11.5L10.5 14L14 8" class="stroke-sky-800 dark:stroke-sky-300" /></svg><p class="ml-3">Customizing your theme with <code class="font-mono font-medium text-gray-950 dark:text-white">@theme</code></p></li>',
+    '          <li class="flex"><svg class="h-[1lh] w-5.5 shrink-0" viewBox="0 0 22 22" fill="none" stroke-linecap="square"><circle cx="11" cy="11" r="11" class="fill-sky-400/25" /><circle cx="11" cy="11" r="10.5" class="stroke-sky-400/25" /><path d="M8 11.5L10.5 14L14 8" class="stroke-sky-800 dark:stroke-sky-300" /></svg><p class="ml-3">Adding custom utilities with <code class="font-mono font-medium text-gray-950 dark:text-white">@utility</code></p></li>',
+    '          <li class="flex"><svg class="h-[1lh] w-5.5 shrink-0" viewBox="0 0 22 22" fill="none" stroke-linecap="square"><circle cx="11" cy="11" r="11" class="fill-sky-400/25" /><circle cx="11" cy="11" r="10.5" class="stroke-sky-400/25" /><path d="M8 11.5L10.5 14L14 8" class="stroke-sky-800 dark:stroke-sky-300" /></svg><p class="ml-3">Adding custom variants with <code class="font-mono font-medium text-gray-950 dark:text-white">@variant</code></p></li>',
+    '          <li class="flex"><svg class="h-[1lh] w-5.5 shrink-0" viewBox="0 0 22 22" fill="none" stroke-linecap="square"><circle cx="11" cy="11" r="11" class="fill-sky-400/25" /><circle cx="11" cy="11" r="10.5" class="stroke-sky-400/25" /><path d="M8 11.5L10.5 14L14 8" class="stroke-sky-800 dark:stroke-sky-300" /></svg><p class="ml-3">Code completion with instant preview</p></li>',
     '        </ul>',
     '        <p>Perfect for learning how the framework works, prototyping a new idea, or creating a demo to share online.</p>',
+    '      </div>',
+    '      <div class="mt-10 space-y-6 border-t border-gray-950/10 pt-10 dark:border-white/10">',
     '        <p>Want to dig deeper into Tailwind?</p>',
     '        <a href="https://tailwindcss.com/docs" target="_blank" rel="noopener" class="inline-block font-semibold text-gray-950 underline decoration-sky-500 underline-offset-4 dark:text-white">Read the docs &rarr;</a>',
     '      </div>',
@@ -839,6 +855,14 @@ body.dragging iframe { pointer-events: none; }
   rz.addEventListener('keydown', function (e) {
     if (e.key === 'ArrowUp') { e.preventDefault(); setLower(lowerEl.offsetHeight + 24); }
     else if (e.key === 'ArrowDown') { e.preventDefault(); setLower(lowerEl.offsetHeight - 24); }
+  });
+
+  $('#lowerHead').addEventListener('click', function () {
+    var closed = lowerEl.dataset.closed !== '1';
+    if (closed) lowerEl.dataset.closed = '1'; else delete lowerEl.dataset.closed;
+    this.setAttribute('aria-expanded', String(!closed));
+    rz.hidden = closed;
+    updateBand();
   });
 
   /* ---------- expand / collapse toggles ---------- */
