@@ -149,6 +149,11 @@ button { cursor: pointer; }
 .readout { color: var(--muted); font: 12.5px var(--mono); font-variant-numeric: tabular-nums; }
 .stage { flex: 1; min-height: 0; display: flex; justify-content: center; background: var(--stage); }
 .stage iframe { height: 100%; width: 100%; max-width: 100%; border: 0; background: transparent; }
+.playbtn { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--accent); font-size: 12.5px; font-weight: 500; }
+.playbtn[hidden] { display: none; }
+.playbtn svg { width: 12px; height: 12px; fill: currentColor; stroke: none; }
+.playbtn:hover { background: var(--hover); }
+.stage iframe[hidden] { display: none; }
 .stage[data-fixed="1"] iframe { box-shadow: 0 0 0 1px var(--line); }
 
 /* Index tab */
@@ -458,18 +463,16 @@ body.dragging iframe { pointer-events: none; }
       <div class="ptools">
         <div class="spacer"></div>
         <span class="readout" id="readout" aria-live="off" hidden></span>
-        <div class="seg" role="group" aria-label="Select mode">
+        <button type="button" class="playbtn" id="viewReset" hidden>Reset</button>
+        <button type="button" class="playbtn" id="playBtn" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5l12 7-12 7z"/></svg><span>Play</span></button>
+        <div class="seg" role="group" aria-label="Preview mode">
           <button type="button" id="selMode" aria-pressed="true" title="Click elements in the preview to select them">Select mode</button>
-        </div>
-        <div class="seg" role="group" aria-label="Preview width" id="widthSeg">
-          <button type="button" data-w="0" aria-pressed="true">Fit</button>
-          <button type="button" data-w="375" aria-pressed="false">375</button>
-          <button type="button" data-w="768" aria-pressed="false">768</button>
-          <button type="button" data-w="1024" aria-pressed="false">1024</button>
+          <button type="button" id="viewMode" aria-pressed="false" title="Try utilities on three sample blocks">View mode</button>
         </div>
       </div>
       <div class="stage" id="stage">
         <iframe id="frame" title="Live preview" sandbox="allow-scripts allow-popups"></iframe>
+        <iframe id="vframe" title="View mode" sandbox="allow-scripts" hidden></iframe>
       </div>
     </section>
   </main>
@@ -535,7 +538,7 @@ body.dragging iframe { pointer-events: none; }
 
   function $(s) { return document.querySelector(s); }
   var ta = $('#ta'), hl = $('#hl'), gutter = $('#gutter'), pre = ta.previousElementSibling;
-  var frame = $('#frame'), stage = $('#stage'), workspace = $('#workspace');
+  var vframe = $('#vframe'), frame = $('#frame'), stage = $('#stage'), workspace = $('#workspace');
 
   function save() {
     try { localStorage.setItem(KEY, JSON.stringify({ html: st.html, css: st.css, dark: st.dark, width: st.width, layout: st.layout })); } catch (e) {}
@@ -1164,6 +1167,7 @@ body.dragging iframe { pointer-events: none; }
     st.dark = d;
     document.querySelectorAll('#themeSeg button').forEach(function (b) { b.setAttribute('aria-pressed', String((b.dataset.dark === '1') === d)); });
     try { frame.contentWindow.postMessage({ tw: 'theme', dark: d }, '*'); } catch (e) {}
+    try { vframe.contentWindow.postMessage({ vw: 'theme', dark: d }, '*'); } catch (e) {}
     save();
   }
   $('#themeSeg').addEventListener('click', function (e) {
@@ -1177,9 +1181,6 @@ body.dragging iframe { pointer-events: none; }
     document.querySelectorAll('#widthSeg button').forEach(function (b) { b.setAttribute('aria-pressed', String(Number(b.dataset.w) === w)); });
     save();
   }
-  $('#widthSeg').addEventListener('click', function (e) {
-    var b = e.target.closest('button'); if (b) setWidth(Number(b.dataset.w));
-  });
 
   function bp(w) {
     if (w >= 1536) return '2xl';
@@ -2319,7 +2320,7 @@ forced-colors: | @media (forced-colors: active) |`)
 
   idxRoot.addEventListener('click', function (e) {
     var row = e.target.closest('tr.pickable');
-    if (row) pickClass(row.dataset.c, row.dataset.g);
+    if (row) { if (viewOn) pickView(row.dataset.c, row.dataset.g); else pickClass(row.dataset.c, row.dataset.g); }
   });
   $('#selChips').addEventListener('click', function (e) {
     var b = e.target.closest('.chip');
@@ -2586,10 +2587,110 @@ forced-colors: | @media (forced-colors: active) |`)
     restoreLabel('Restored');
     restoreTimer = setTimeout(function () { restoreTimer = 0; restoreLabel('Restore example'); }, 1500);
   });
+  /* ---------- view mode ---------- */
+  var viewOn = false, playing = false, playTimers = [];
+  var V_C = 'flex gap-4';
+  var V_B = 'flex h-20 w-20 items-center justify-center rounded-xl bg-sky-500 text-2xl font-semibold text-white';
+  var vs = { c: V_C.split(' '), b: [V_B.split(' '), V_B.split(' '), V_B.split(' ')], t: -1 };
+  var CONT_PROP = /^(display|flex-direction|flex-wrap|justify-content|justify-items|align-content|align-items|place-content|place-items|gap|row-gap|column-gap|grid-template-columns|grid-template-rows|grid-auto-flow|grid-auto-columns|grid-auto-rows)$/;
+  function bareTok(t) { return t.slice(t.lastIndexOf(':') + 1); }
+  function isAnim(t) { return /^-?animate-/.test(bareTok(t)); }
+  function isTrans(t) { return /^(transition|duration-|delay-|ease-)/.test(bareTok(t)); }
+  function vAll() { return vs.c.concat.apply(vs.c, vs.b); }
+  function vBuildDoc() {
+    var css = st.css.replace(/<\/style/gi, '<\\/style');
+    var script = '(function(){var box=document.getElementById("box");' +
+      'addEventListener("message",function(e){var d=e.data;if(!d||!d.vw)return;' +
+      'if(d.vw==="set"){box.className=d.c;for(var i=0;i<box.children.length;i++){box.children[i].className=d.b[i];box.children[i].setAttribute("data-t",d.t===i?"1":"");}}' +
+      'if(d.vw==="play"){if(d.on)box.setAttribute("data-play","1");else box.removeAttribute("data-play");}' +
+      'if(d.vw==="theme")document.documentElement.classList.toggle("dark",!!d.dark);});' +
+      'document.addEventListener("click",function(e){var b=e.target.closest("[data-i]");parent.postMessage({vw:"target",i:b?Number(b.getAttribute("data-i")):-1},"*");});' +
+      'parent.postMessage({vw:"ready"},"*");})();';
+    return '<!doctype html><html' + (st.dark ? ' class="dark"' : '') + '><head><meta charset="utf-8">' +
+      '<meta name="viewport" content="width=device-width,initial-scale=1">' +
+      '<style>html{background:#fff;color:#111}html.dark{background:#030712;color:#e5e7eb}' +
+      'body{margin:0;min-height:100vh;display:grid;place-items:center;font-family:system-ui,sans-serif}' +
+      '[data-t="1"]{outline:2px dashed #7dd3fc;outline-offset:5px}' +
+      '#box[data-play="1"]>*{transform:translateY(-28px) rotate(8deg) scale(1.08);opacity:.65;background-color:#f59e0b}</style>' +
+      '<script src="' + TW + '"><\/script>' +
+      '<style type="text/tailwindcss">' + css + '</style></head><body>' +
+      '<div id="box" class="' + V_C + '"><div data-i="0" class="' + V_B + '">1</div><div data-i="1" class="' + V_B + '">2</div><div data-i="2" class="' + V_B + '">3</div></div>' +
+      '<script>' + script + '<\/script></body></html>';
+  }
+  function vPush() {
+    var show = function (arr) { return arr.filter(function (t) { return playing || !isAnim(t); }).join(' '); };
+    try { vframe.contentWindow.postMessage({ vw: 'set', c: show(vs.c), b: vs.b.map(show), t: vs.t }, '*'); } catch (e) {}
+    var fx = vAll().some(function (t) { return isAnim(t) || isTrans(t); });
+    $('#playBtn').hidden = !(viewOn && fx);
+    $('#viewReset').hidden = !viewOn;
+    if (!fx && playing) vStop();
+  }
+  function vStop() {
+    playTimers.forEach(clearTimeout); playTimers = [];
+    playing = false;
+    $('#playBtn span').textContent = 'Play';
+    try { vframe.contentWindow.postMessage({ vw: 'play', on: false }, '*'); } catch (e) {}
+    vPush();
+  }
+  function vPlay() {
+    if (playing) { vStop(); return; }
+    playing = true;
+    $('#playBtn span').textContent = 'Stop';
+    vPush();
+    playTimers.push(setTimeout(function () { try { vframe.contentWindow.postMessage({ vw: 'play', on: true }, '*'); } catch (e) {} }, 80));
+    playTimers.push(setTimeout(function () { try { vframe.contentWindow.postMessage({ vw: 'play', on: false }, '*'); } catch (e) {} }, 1800));
+    playTimers.push(setTimeout(vStop, 3600));
+  }
+  function pickView(c, g) {
+    var v = normVar(), full = v + c;
+    var prop = String(g).split('|')[2] || '';
+    var toContainer = CONT_PROP.test(prop) || /^-?(space|divide)-/.test(c);
+    var idxs = vs.t >= 0 ? [vs.t] : [0, 1, 2];
+    var lists = toContainer ? [vs.c] : idxs.map(function (i) { return vs.b[i]; });
+    var had = lists[0].indexOf(full) > -1;
+    var gs = {};
+    (groups[g] || [c]).forEach(function (x) { gs[v + x] = 1; });
+    var out = lists.map(function (toks) {
+      if (had) return toks.filter(function (t) { return t !== full; });
+      var r = [], pos = -1;
+      toks.forEach(function (t) { if (gs[t]) { if (pos < 0) pos = r.length; } else r.push(t); });
+      if (pos < 0) r.push(full); else r.splice(pos, 0, full);
+      return r;
+    });
+    if (toContainer) vs.c = out[0]; else idxs.forEach(function (i, k) { vs.b[i] = out[k]; });
+    say((had ? 'Removed ' : 'Applied ') + full + (toContainer ? ' on the container' : (vs.t >= 0 ? ' on block ' + (vs.t + 1) : ' on all blocks')));
+    vPush();
+  }
+  function setView(on) {
+    viewOn = on;
+    if (on) { vframe.srcdoc = vBuildDoc(); }
+    else { if (playing) vStop(); }
+    vframe.hidden = !on; frame.hidden = on;
+    $('#selMode').setAttribute('aria-pressed', String(!on && selMode));
+    $('#viewMode').setAttribute('aria-pressed', String(on));
+    $('#playBtn').hidden = true; $('#viewReset').hidden = !on;
+    if (on) clearHover0();
+    if (!on) { try { frame.contentWindow.postMessage({ tw: 'mode', on: selMode }, '*'); } catch (e) {} vPush(); }
+  }
+  function clearHover0() { try { frame.contentWindow.postMessage({ tw: 'mode', on: false }, '*'); } catch (e) {} }
+  $('#viewMode').addEventListener('click', function () { setView(!viewOn); });
+  $('#playBtn').addEventListener('click', vPlay);
+  $('#viewReset').addEventListener('click', function () {
+    if (playing) vStop();
+    vs.c = V_C.split(' '); vs.b = [V_B.split(' '), V_B.split(' '), V_B.split(' ')]; vs.t = -1;
+    vPush(); say('View mode reset.');
+  });
   $('#selMode').addEventListener('click', function () {
-    selMode = !selMode;
+    if (viewOn) { selMode = true; setView(false); }
+    else selMode = !selMode;
     this.setAttribute('aria-pressed', String(selMode));
     try { frame.contentWindow.postMessage({ tw: 'mode', on: selMode }, '*'); } catch (e) {}
+  });
+  window.addEventListener('message', function (e) {
+    if (e.source !== vframe.contentWindow) return;
+    var d = e.data;
+    if (d && d.vw === 'ready') vPush();
+    if (d && d.vw === 'target') { vs.t = (vs.t === d.i) ? -1 : d.i; vPush(); }
   });
   window.addEventListener('message', function (e) {
     if (e.source !== frame.contentWindow) return;
@@ -2603,7 +2704,7 @@ forced-colors: | @media (forced-colors: active) |`)
   /* ---------- boot ---------- */
   setLayout(st.layout);
   setDark(st.dark);
-  setWidth(st.width);
+  setWidth(0);
   showTab('html');
   renderGen();
   render();
