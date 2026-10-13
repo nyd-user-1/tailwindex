@@ -1,0 +1,2582 @@
+<title>tailwindex</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout concept: a two-pane workbench. Editor (tabs + generated CSS) beside a live preview; four layout modes. Dark-first, like a code editor. */
+:root {
+  --ui: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --bg: #0b1017;
+  --bar: #0f1620;
+  --panel: #111a26;
+  --panel-2: #0d141d;
+  --line: #1f2b3a;
+  --fg: #d5dde8;
+  --muted: #8393a8;
+  --faint: #4a5a6e;
+  --accent: #38b6f2;
+  --accent-fg: #06222f;
+  --hover: #182434;
+  --sel: #1d4a66;
+  --stage: #070b10;
+  --syn-tag: #7cc4f5;
+  --syn-attr: #b9a7f5;
+  --syn-str: #8fd9a8;
+  --syn-var: #f5b97a;
+  --syn-variant: #4fd1c5;
+  --syn-com: #5d6f84;
+  --syn-at: #f08fb4;
+  --syn-num: #f5b97a;
+  --syn-punct: #6b7c92;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #f3f5f8; --bar: #ffffff; --panel: #ffffff; --panel-2: #f7f9fb; --line: #dbe2ea;
+    --fg: #1c2733; --muted: #5b6b7e; --faint: #98a5b5; --accent: #0a85c2; --accent-fg: #ffffff;
+    --hover: #eaf0f6; --sel: #bfe0f5; --stage: #e6ebf1;
+    --syn-tag: #0a6aa1; --syn-attr: #6a4bc2; --syn-str: #1b7a45; --syn-var: #b25a0e; --syn-variant: #0e7c7b;
+    --syn-com: #7b8a9b; --syn-at: #c0275f; --syn-num: #b25a0e; --syn-punct: #8a99ab;
+    color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --bg: #f3f5f8; --bar: #ffffff; --panel: #ffffff; --panel-2: #f7f9fb; --line: #dbe2ea;
+  --fg: #1c2733; --muted: #5b6b7e; --faint: #98a5b5; --accent: #0a85c2; --accent-fg: #ffffff;
+  --hover: #eaf0f6; --sel: #bfe0f5; --stage: #e6ebf1;
+  --syn-tag: #0a6aa1; --syn-attr: #6a4bc2; --syn-str: #1b7a45; --syn-var: #b25a0e; --syn-variant: #0e7c7b;
+  --syn-com: #7b8a9b; --syn-at: #c0275f; --syn-num: #b25a0e; --syn-punct: #8a99ab;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.5 var(--ui); overflow: hidden; }
+button, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.app { height: 100%; display: flex; flex-direction: column; min-height: 0; }
+.spacer { flex: 1; }
+
+/* Top bar */
+.top { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 14px; padding: 12px 16px; background: var(--bar); border-bottom: 1px solid var(--line); }
+.brand { display: flex; align-items: center; gap: 10px; color: var(--accent); }
+.brand svg { width: 28px; height: 28px; flex: none; }
+.word { color: var(--fg); font-weight: 600; font-size: 20px; letter-spacing: -0.01em; white-space: nowrap; }
+.word b { font-weight: 600; color: var(--accent); }
+.tagline { flex: 1 1 240px; min-width: 0; margin: 0; color: var(--muted); font-size: 13.5px; }
+.btn { padding: 7px 16px; border-radius: 6px; border: 1px solid var(--line); background: transparent; font-weight: 600; }
+.btn:hover { background: var(--hover); }
+.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: transparent; }
+.btn.primary:hover { filter: brightness(1.08); background: var(--accent); }
+.btn.sm { padding: 4px 12px; font-size: 13px; }
+.btn:disabled { opacity: 0.45; cursor: default; }
+.btn:disabled:hover { background: transparent; }
+.seg { display: inline-flex; gap: 2px; padding: 3px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+.seg button { min-width: 34px; height: 28px; padding: 0 8px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); display: inline-grid; place-items: center; font-size: 12.5px; font-weight: 500; }
+.seg button:hover { color: var(--fg); }
+.seg button[aria-pressed="true"] { background: var(--hover); color: var(--accent); }
+.seg svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Workspace */
+.workspace { flex: 1; min-height: 0; display: grid; }
+.workspace[data-layout="split"] { grid-template-columns: minmax(0, var(--c1, 1fr)) 0 minmax(0, 1fr); }
+.workspace[data-layout="stack"] { grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); }
+.workspace[data-layout="preview"] .editorPane { display: none; }
+.workspace[data-layout="editor"] .previewPane { display: none; }
+.workspace[data-layout="split"] .previewPane { border-left: 1px solid var(--line); }
+.workspace[data-layout="stack"] .previewPane { order: -1; border-bottom: 1px solid var(--line); }
+@media (max-width: 760px) {
+  .workspace[data-layout="split"] { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); }
+  .workspace[data-layout="split"] .previewPane { order: -1; border-left: 0; border-bottom: 1px solid var(--line); }
+}
+.pane { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+
+/* Editor */
+.tabs { display: flex; align-items: center; gap: 4px; padding: 0 16px; min-height: 44px; background: var(--panel-2); border-bottom: 1px solid var(--line); }
+.tab, .ltab { height: 44px; padding: 0 10px; background: transparent; border: 0; border-bottom: 2px solid transparent; color: var(--muted); font-weight: 500; }
+.tab:hover, .ltab:hover { color: var(--fg); }
+.tab[aria-selected="true"], .ltab[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); }
+.tidy { display: inline-flex; align-items: center; gap: 6px; padding: 6px 8px; border: 0; background: transparent; color: var(--muted); border-radius: 6px; }
+.tidy:hover { color: var(--fg); background: var(--hover); }
+.tidy svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+
+.selband { position: absolute; left: 0; right: 0; z-index: 2; pointer-events: none; background: color-mix(in srgb, var(--accent) 16%, transparent); box-shadow: inset 3px 0 0 var(--accent); }
+.selband[hidden] { display: none; }
+.editor { position: relative; overflow: hidden; flex: 1; min-height: 0; display: flex; background: var(--panel); }
+.code, .gutter { font: 13px/1.65 var(--mono); font-variant-ligatures: none; letter-spacing: 0; }
+.gutter { width: 2.2rem; flex: none; overflow: hidden; white-space: pre; text-align: right; padding: 12px 8px 60px 0; color: var(--faint); user-select: none; font-variant-numeric: tabular-nums; }
+.surface { position: relative; flex: 1; min-width: 0; }
+.surface pre, .surface textarea { position: absolute; inset: 0; margin: 0; width: 100%; height: 100%; padding: 12px 16px 60px 4px; white-space: pre; tab-size: 2; border: 0; }
+.surface pre { overflow: hidden; pointer-events: none; color: var(--fg); }
+.surface pre code { font: inherit; }
+.surface textarea { overflow: auto; resize: none; outline: none; background: transparent; color: transparent; -webkit-text-fill-color: transparent; caret-color: var(--fg); }
+.surface textarea::selection { background: var(--sel); }
+
+.c { color: var(--syn-com); font-style: italic; }
+.t { color: var(--syn-tag); }
+.a { color: var(--syn-attr); }
+.s { color: var(--syn-str); }
+.v { color: var(--syn-var); }
+.vr { color: var(--syn-variant); }
+.p { color: var(--syn-punct); }
+.at { color: var(--syn-at); }
+.pr { color: var(--syn-tag); }
+.n { color: var(--syn-num); }
+.cv { color: var(--syn-attr); }
+
+/* Generated CSS */
+.gen { flex: 1; min-height: 0; display: flex; flex-direction: column; background: var(--panel-2); border-top: 1px solid var(--line); }
+.gen.closed { flex: none; }
+.gen-head { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 16px; background: transparent; border: 0; text-align: left; }
+.gen-head strong { font-weight: 600; }
+.gen-head .size { color: var(--muted); font: 12.5px var(--mono); font-variant-numeric: tabular-nums; }
+.gen-head svg { width: 18px; height: 18px; fill: none; stroke: var(--muted); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; transition: transform 0.15s; }
+.gen.closed .gen-head svg { transform: rotate(-90deg); }
+.gen-tabs { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 16px 8px; }
+.gen-tabs button { padding: 4px 12px; border-radius: 999px; border: 0; background: transparent; color: var(--muted); font-size: 13px; font-weight: 500; }
+.gen-tabs button:hover { color: var(--fg); }
+.gen-tabs button[aria-selected="true"] { background: var(--hover); color: var(--fg); }
+.gen-view { flex: 1; min-height: 0; overflow: auto; display: flex; align-items: flex-start; border-top: 1px solid var(--line); }
+.gen-view .gutter { padding-bottom: 12px; position: sticky; left: 0; background: var(--panel-2); z-index: 1; overflow: visible; }
+.gen-view pre { margin: 0; padding: 12px 16px 12px 4px; font: 13px/1.65 var(--mono); font-variant-ligatures: none; white-space: pre; min-width: 0; }
+
+/* Preview */
+.ptools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 6px 16px; min-height: 44px; background: var(--panel-2); border-bottom: 1px solid var(--line); }
+#readout { display: none !important; }
+.readout { color: var(--muted); font: 12.5px var(--mono); font-variant-numeric: tabular-nums; }
+.stage { flex: 1; min-height: 0; display: flex; justify-content: center; background: var(--stage); }
+.stage iframe { height: 100%; width: 100%; max-width: 100%; border: 0; background: transparent; }
+.stage[data-fixed="1"] iframe { box-shadow: 0 0 0 1px var(--line); }
+
+/* Index tab */
+* { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--fg) 24%, transparent) transparent; }
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track, *::-webkit-scrollbar-corner { background: transparent; }
+*::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--fg) 24%, transparent); border-radius: 999px; border: 2px solid transparent; background-clip: padding-box; }
+*::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--fg) 40%, transparent); background-clip: padding-box; border: 2px solid transparent; }
+.surface { overflow: hidden; }
+.chgt, .chgt .vr { color: var(--syn-var); }
+.menu details.menu-sec { justify-items: stretch; border-top: 1px solid var(--line); padding-top: 10px; }
+.menu details > summary { cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between; color: var(--fg); font-weight: 500; font-size: 13px; }
+.menu details > summary::-webkit-details-marker { display: none; }
+.menu details > summary::after { content: ""; width: 7px; height: 7px; border-right: 1.6px solid var(--muted); border-bottom: 1.6px solid var(--muted); transform: rotate(45deg); transition: transform .15s; margin-right: 3px; }
+.menu details[open] > summary::after { transform: rotate(-135deg); }
+.menu .row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.menu textarea, .menu input.tx { width: 100%; box-sizing: border-box; border: 1px solid var(--line); background: var(--panel); color: var(--fg); border-radius: 8px; padding: 8px 10px; font-family: var(--mono); font-size: 12px; margin-top: 8px; resize: vertical; }
+.menu input.tx { font-family: var(--ui); font-size: 13px; }
+.menu .note { margin: 6px 0 0; font-size: 12px; color: var(--muted); }
+.menu .saved { display: grid; gap: 4px; margin-top: 8px; }
+.menu .saved > div { display: flex; align-items: center; gap: 6px; font-size: 12.5px; }
+.menu .saved > div > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.resizer { flex: none; height: 10px; position: relative; background: var(--panel-2); border-top: 1px solid var(--line); cursor: row-resize; touch-action: none; }
+.resizer::after { content: ""; position: absolute; left: 50%; top: 50%; width: 40px; height: 4px; transform: translate(-50%, -50%); border-radius: 999px; background: color-mix(in srgb, var(--fg) 26%, transparent); }
+.resizer:hover::after, .resizer:focus-visible::after { background: var(--accent); }
+body.dragging iframe { pointer-events: none; }
+.vrz { display: none; position: relative; z-index: 6; }
+@media (min-width: 761px) {
+  .workspace[data-layout="split"] .editorPane { grid-column: 1; }
+  .workspace[data-layout="split"] .vrz { display: block; grid-column: 2; grid-row: 1; }
+  .workspace[data-layout="split"] .previewPane { grid-column: 3; grid-row: 1; }
+}
+.vrz-hit { position: absolute; top: 0; bottom: 0; left: -5px; width: 10px; cursor: col-resize; touch-action: none; }
+.vrz-hit::after { content: ""; position: absolute; left: 50%; top: 50%; width: 4px; height: 40px; transform: translate(-50%, -50%); border-radius: 999px; background: color-mix(in srgb, var(--fg) 26%, transparent); }
+.vrz-hit:hover::after, .vrz-hit:focus-visible::after { background: var(--accent); }
+.xtog[hidden] { display: none; }
+.xtog { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 36px; height: 32px; padding: 0 8px; border: 1px solid var(--line); background: var(--panel); color: var(--muted); border-radius: 8px; font-size: 13px; }
+.xtog:hover { color: var(--fg); background: var(--hover); }
+#xtogLbl, #xtogTreeLbl, #restoreLbl:empty { display: none; }
+.xtog svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; transition: transform 0.15s; }
+.xtog[aria-expanded="true"] svg { transform: rotate(180deg); }
+#idxExpand, #idxCollapse, #treeExpand, #treeCollapse { display: none; }
+.ptools { position: relative; }
+.top { position: relative; z-index: 40; }
+.menu-btn.brandbtn { height: auto; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--accent); }
+.menu-btn.brandbtn svg { width: 28px; height: 28px; stroke: none; fill: currentColor; }
+.menu-btn.brandbtn:hover, .menu-btn.brandbtn[aria-expanded="true"] { background: transparent; color: var(--accent); filter: brightness(1.15); }
+.menu-btn { display: inline-flex; align-items: center; gap: 2px; height: 32px; padding: 0 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--muted); }
+.menu-btn:hover, .menu-btn[aria-expanded="true"] { color: var(--fg); background: var(--hover); }
+.menu-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.menu { position: absolute; left: 16px; top: calc(100% - 2px); z-index: 30; width: min(380px, calc(100vw - 32px)); max-height: min(70vh, 560px); overflow: auto; display: grid; gap: 14px; padding: 14px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 14px 36px rgba(0, 0, 0, 0.38); }
+.menu[hidden], .menu [hidden] { display: none !important; }
+.menu-head { display: flex; align-items: center; justify-content: space-between; }
+.xclose { display: inline-grid; place-items: center; width: 28px; height: 28px; margin: -4px -4px -4px 0; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--muted); }
+.xclose:hover { background: var(--hover); color: var(--fg); }
+.xclose svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.menu-sec.act { justify-items: stretch; }
+.act-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.act-t { color: var(--fg); font-weight: 500; font-size: 13px; }
+.act .note { margin: 2px 0 0; }
+.iconbtn { flex: none; display: inline-grid; place-items: center; width: 34px; height: 34px; padding: 0; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--muted); }
+.iconbtn:hover { color: var(--fg); background: var(--hover); }
+.act svg, .item svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.list { display: grid; margin-top: 6px; }
+.item { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 8px 10px; border: 0; border-radius: 8px; background: transparent; color: var(--fg); font-size: 13px; text-align: left; }
+.item:hover { background: var(--hover); }
+.item svg { color: var(--muted); opacity: 0; transition: opacity .12s; }
+.item:hover svg, .item:focus-visible svg, .item.done svg { opacity: 1; }
+.done, .done svg { color: #2fbf71 !important; }
+.menu.ctx { position: fixed; right: auto; z-index: 60; }
+.ptools .seg { flex: none; }
+.menu-sec { display: grid; gap: 6px; justify-items: start; }
+.menu .idx-sel { border-top: 0; padding-top: 0; }
+.lower { flex: 0 0 50%; min-height: 0; display: flex; flex-direction: column; border-top: 1px solid var(--line); background: var(--panel-2); }
+.gen[hidden], .editor[hidden], .tree[hidden] { display: none !important; }
+.gen-head { pointer-events: none; cursor: default; }
+.gen-head > svg { display: none; }
+.lower [hidden] { display: none !important; }
+.index { flex: 1; min-height: 0; overflow: auto; background: var(--panel); }
+.idx-bar { display: none; position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 16px; background: var(--panel-2); border-bottom: 1px solid var(--line); }
+.idx-search { position: relative; flex: 0 1 520px; min-width: 0; }
+.lower-tabs .idx-search { flex: 1 1 auto; margin-right: 8px; }
+.lower-tabs .idx-search input { height: 32px; }
+.idx-search input { width: 100%; height: 38px; padding: 0 64px 0 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--fg); }
+.idx-search input::placeholder { color: var(--muted); }
+.idx-search kbd { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); padding: 1px 6px; border: 1px solid var(--line); border-radius: 5px; color: var(--muted); font: 11px var(--mono); }
+.idx-list { display: flex; flex-direction: column; gap: 8px; padding: 16px; }
+.idx-empty { margin: 0; padding: 8px 16px 24px; color: var(--muted); }
+.cat { background: transparent; border: 0; padding: 0; }
+.cat-h { margin: 0; font: inherit; }
+.cat-head { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2); color: var(--fg); font-weight: 600; font-size: 15px; text-align: left; }
+.cat-head:hover { background: var(--hover); }
+.cat-head svg { width: 18px; height: 18px; flex: none; fill: none; stroke: var(--muted); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; transition: transform 0.15s; }
+.cat-head[aria-expanded="true"] svg { transform: rotate(180deg); }
+.itm { border-bottom: 1px solid var(--line); }
+.itm:last-child { border-bottom: 0; }
+.itm-row { display: flex; align-items: center; gap: 10px; padding: 4px 6px 4px 14px; }
+.itm-name { flex: 1; min-width: 0; padding: 8px 0; border: 0; background: transparent; color: var(--fg); text-align: left; }
+.itm-name[aria-expanded="true"] { color: var(--accent); }
+.docs { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 6px; color: var(--muted); text-decoration: none; }
+.docs:hover { background: var(--hover); color: var(--accent); }
+.docs svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.itm-body { padding: 0 14px 14px; }
+.itm-desc { margin: 2px 0 10px; font-weight: 600; max-width: 65ch; }
+.tbl { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+.tbl table { width: 100%; border-collapse: collapse; font: 12.5px/1.5 var(--mono); }
+.tbl td { padding: 7px 12px; border-top: 1px solid var(--line); vertical-align: top; white-space: nowrap; }
+.tbl tr:first-child td { border-top: 0; }
+.tbl td.k { color: var(--syn-tag); }
+.tbl td.v { white-space: normal; min-width: 15rem; }
+.tbl td.n { color: var(--muted); text-align: right; }
+.tbl tr.pickable { cursor: pointer; }
+.tbl tr.pickable:hover td { background: var(--hover); }
+.tbl tr.on td { background: color-mix(in srgb, var(--accent) 16%, transparent); }
+.tbl tr.on td.k { box-shadow: inset 3px 0 0 var(--accent); font-weight: 500; }
+.pick { padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.cat-head.has-sel > span::after, .itm.has-sel .itm-name::after { content: ""; display: inline-block; width: 7px; height: 7px; margin-left: 8px; border-radius: 50%; background: #2fbf71; vertical-align: middle; }
+.idx-sel { flex: 1 1 100%; display: grid; gap: 8px; min-width: 0; padding-top: 10px; border-top: 1px solid var(--line); }
+.sel-line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; min-width: 0; }
+.sel-label { color: var(--muted); font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+.sel-tag { color: var(--accent); font: 12.5px var(--mono); }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; min-width: 0; }
+.chip { padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--fg); font: 12px var(--mono); }
+.chip:hover { border-color: var(--accent); }
+.sel-var { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; }
+.sel-var input { width: 9rem; height: 30px; padding: 0 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel); color: var(--fg); font: 12.5px var(--mono); }
+.sel-msg { flex: 1 1 220px; min-width: 0; color: var(--muted); font-size: 13px; }
+
+/* Tree tab */
+.tree { flex: 1; min-height: 0; overflow: auto; background: var(--panel); }
+.tree-bar { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 12px 16px; background: var(--panel-2); border-bottom: 1px solid var(--line); }
+.keys { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; color: var(--muted); font-size: 13px; }
+.keys kbd { padding: 1px 6px; border: 1px solid var(--line); border-radius: 5px; background: var(--panel); color: var(--fg); font: 11.5px var(--mono); }
+.tree-body { padding: 8px 8px 24px; }
+.trow { display: flex; align-items: center; gap: 2px; padding-left: calc(var(--d) * 16px); scroll-margin-top: 56px; }
+.twist { width: 22px; height: 22px; flex: none; display: grid; place-items: center; border: 0; border-radius: 4px; background: none; color: var(--muted); }
+.twist:hover { background: var(--hover); color: var(--fg); }
+.twist svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: transform 0.12s; }
+.twist.shut svg { transform: rotate(-90deg); }
+.twist-pad { width: 22px; flex: none; }
+.tnode { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 8px; padding: 4px 8px; border: 0; border-radius: 6px; background: none; color: var(--fg); font: 12.5px/1.5 var(--mono); text-align: left; white-space: nowrap; overflow: hidden; }
+.tnode:hover { background: var(--hover); }
+.trow.sel .tnode { background: color-mix(in srgb, var(--accent) 18%, transparent); box-shadow: inset 3px 0 0 var(--accent); }
+.ttag { flex: none; color: var(--syn-tag); }
+.tcls { min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--muted); }
+.ttext { min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--syn-str); }
+
+@media (prefers-reduced-motion: reduce) { .gen-head svg, .cat-head svg { transition: none; } }
+</style>
+
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <button class="menu-btn brandbtn" id="menuBtn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="menu" aria-label="Menu" title="Menu"><svg viewBox="0 0 32 32" aria-hidden="true"><rect x="3" y="6" width="26" height="5" rx="2.5" fill="currentColor"/><rect x="3" y="13.5" width="17" height="5" rx="2.5" fill="currentColor"/><rect x="3" y="21" width="22" height="5" rx="2.5" fill="currentColor"/></svg></button>
+      <span class="word">tailwind<b>ex</b></span>
+    </div>
+    <div class="spacer"></div>
+    <div class="seg" role="group" aria-label="Layout" id="layoutSeg">
+  <button type="button" data-layout="split" aria-pressed="true" title="Editor and preview side by side" aria-label="Side by side"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M12 5v14"/></svg></button>
+  <button type="button" data-layout="stack" aria-pressed="false" title="Editor above preview" aria-label="Stacked"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 12h18"/></svg></button>
+  <button type="button" data-layout="preview" aria-pressed="false" title="Preview only" aria-label="Preview only"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/></svg></button>
+  <button type="button" data-layout="editor" aria-pressed="false" title="Editor only" aria-label="Editor only"><svg viewBox="0 0 24 24"><path d="M9 8l-4 4 4 4M15 8l4 4-4 4"/></svg></button>
+  </div>
+        <div class="menu" id="menu" role="region" aria-label="Options" hidden>
+          <div class="menu-head"><span class="sel-label">Options</span><button class="xclose" id="menuX" type="button" aria-label="Close menu" title="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+          <div class="menu-sec"><span class="sel-label">Theme</span>
+            <div class="seg" role="group" aria-label="Preview colour mode" id="themeSeg">
+              <button type="button" data-dark="0" aria-pressed="false">Light</button>
+              <button type="button" data-dark="1" aria-pressed="true">Dark</button>
+            </div>
+          </div>
+          <div class="idx-sel">
+            <div class="sel-line">
+              <span class="sel-label">Selected</span>
+              <code class="sel-tag" id="selTag">none</code>
+              <div class="chips" id="selChips"></div>
+            </div>
+            <div class="sel-line">
+              <label class="sel-var">Variant <input id="selVar" type="text" placeholder="md: or hover:" autocomplete="off" spellcheck="false" maxlength="40"></label>
+              <button class="btn sm" id="selCopy" type="button" disabled>Copy classes</button>
+              <button class="btn sm" id="selClear" type="button" disabled>Clear</button>
+              <span class="sel-msg" id="selMsg" role="status">Click an element in the preview, then click a class below to add or swap it. With nothing selected, a click copies the class.</span>
+            </div>
+          </div>
+        </div>
+        <div class="menu ctx" id="ctx" role="region" aria-label="Element actions" hidden>
+          <div class="menu-head"><span class="sel-label">Element <code class="sel-tag" id="ctxTag"></code></span><button class="xclose" id="ctxX" type="button" aria-label="Close menu" title="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+          <div class="list">
+            <button class="item" type="button" id="aiGo" aria-label="Send element, classes and screenshot to Claude" title="Send element, classes and screenshot"><span>To Claude</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg></button>
+            <button class="item" type="button" data-exp="html"><span>Plain HTML</span><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg></button>
+            <button class="item" type="button" data-exp="jsx"><span>JSX</span><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg></button>
+            <button class="item" type="button" data-exp="vue"><span>Vue</span><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg></button>
+            <button class="item" type="button" data-exp="link"><span>Permalink</span><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg></button>
+          </div>
+          <div class="menu-sec" id="aiResult" hidden><code class="note" id="aiOut" style="display:block;word-break:break-word"></code>
+            <div class="row"><button class="btn sm" type="button" id="aiApply" disabled>Apply classes</button></div></div>
+          <p class="note" id="aiMsg" role="status" hidden></p>
+          <textarea id="outBox" rows="6" readonly spellcheck="false" aria-label="Export output" hidden></textarea>
+          <p class="note" id="outMsg" role="status" hidden></p>
+          <div hidden>
+          <details class="menu-sec" id="secConvert"><summary>Convert Tailwind to CSS</summary>
+            <textarea id="cvIn" rows="3" spellcheck="false" placeholder="Right-click an element, or paste classes: flex gap-3 text-sm/7" aria-label="Tailwind classes"></textarea>
+            <div class="row">
+              <button class="btn sm" type="button" id="cvGo">Convert</button>
+              <button class="btn sm" type="button" id="cvCopy" disabled>Copy CSS</button>
+            </div>
+            <textarea id="cvOut" rows="8" readonly spellcheck="false" aria-label="Generated CSS for these classes" hidden></textarea>
+            <p class="note" id="cvMsg" role="status">Converts and copies the CSS.</p>
+          </details>
+          <details class="menu-sec" id="secSaved"><summary>Snippets and projects</summary>
+            <input class="tx" id="svName" type="text" placeholder="Name" maxlength="60" autocomplete="off" aria-label="Name">
+            <div class="row">
+              <button class="btn sm" type="button" id="svProject">Save project</button>
+              <button class="btn sm" type="button" id="svSnippet">Save selected element</button>
+            </div>
+            <div class="saved" id="svList"></div>
+            <p class="note" id="svMsg" role="status">Project: whole page. Snippet: selected element.</p>
+          </details>
+          </div>
+        </div>
+  </header>
+
+  <main class="workspace" id="workspace" data-layout="split">
+    <section class="pane editorPane" aria-label="Editor">
+      <div class="tabs" role="tablist" aria-label="Source">
+        <button class="tab" role="tab" type="button" data-tab="html" aria-selected="true">HTML</button>
+        <button class="tab" role="tab" type="button" data-tab="css" aria-selected="false">CSS</button>
+        <button class="tab" role="tab" type="button" data-tab="tree" aria-selected="false">Tree</button>
+        <button class="tab" role="tab" type="button" data-tab="gen" aria-selected="false">Generated CSS</button>
+        <div class="spacer"></div>
+        <button class="xtog" id="restore" type="button" title="Restore the original example" aria-label="Restore the original example"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg><span id="restoreLbl"></span></button>
+      </div>
+      <div class="tree" id="tree" hidden>
+        <div class="tree-bar">
+          <div class="keys"><span class="sel-label">Keys</span><kbd>&uarr;</kbd> parent <kbd>&darr;</kbd> child <kbd>&larr;</kbd><kbd>&rarr;</kbd> siblings</div>
+          <span class="spacer"></span>
+          <button class="xtog" id="xtogTree" type="button" aria-expanded="true" title="Expand or collapse the tree"><span id="xtogTreeLbl"></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+          <button class="btn sm" id="treeExpand" type="button">Expand all</button>
+          <button class="btn sm" id="treeCollapse" type="button">Collapse all</button>
+        </div>
+        <div class="tree-body" id="treeBody" role="tree" aria-label="Element tree"></div>
+        <p class="idx-empty" id="treeEmpty" hidden>There are no elements yet. Add some HTML first.</p>
+      </div>
+      <div class="editor">
+        <div class="gutter" id="gutter" aria-hidden="true"></div>
+        <div class="surface">
+          <pre class="code" aria-hidden="true"><code id="hl"></code></pre>
+          <textarea class="code" id="ta" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="Code editor. Press Escape, then Tab, to leave the editor."></textarea>
+        </div>
+        <div class="selband" id="selBand" hidden></div>
+      </div>
+      <div class="gen" id="gen" hidden>
+        <button class="gen-head" id="genHead" type="button" aria-expanded="true">
+          <strong>Generated CSS</strong><span class="size" id="genSize">waiting</span>
+          <span class="spacer"></span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div id="genBody" style="display:flex;flex-direction:column;flex:1;min-height:0">
+          <div class="gen-tabs" id="genTabs" role="tablist" aria-label="CSS layers">
+            <button type="button" role="tab" data-g="all" aria-selected="true">All</button>
+            <button type="button" role="tab" data-g="properties" aria-selected="false">properties</button>
+            <button type="button" role="tab" data-g="theme" aria-selected="false">Theme</button>
+            <button type="button" role="tab" data-g="base" aria-selected="false">Base</button>
+            <button type="button" role="tab" data-g="components" aria-selected="false">Components</button>
+            <button type="button" role="tab" data-g="utilities" aria-selected="false">Utilities</button>
+          </div>
+          <div class="gen-view">
+            <div class="gutter" id="genGutter" aria-hidden="true"></div>
+            <pre id="genPre" tabindex="0" aria-label="Generated CSS"></pre>
+          </div>
+        </div>
+      </div>
+      <div class="resizer" id="resizer" role="separator" aria-orientation="horizontal" aria-label="Resize editor and index" tabindex="0"></div>
+      <div class="lower" id="lower">
+        <div class="lower-tabs tabs">
+          <div class="idx-search"><input id="idxQ" type="search" placeholder="Search a utility, e.g. grid-cols or padding" aria-label="Search utilities" autocomplete="off"><kbd id="kbdHint">⌘ K</kbd></div>
+          <button class="xtog" id="xtog" type="button" aria-expanded="false" title="Expand or collapse all sections"><span id="xtogLbl"></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+        </div>
+      <div class="index" id="index">
+        <div class="idx-bar">
+          <button class="btn" id="idxExpand" type="button">Expand All</button>
+          <button class="btn" id="idxCollapse" type="button">Collapse All</button>
+        </div>
+        <div class="idx-list" id="idxList"></div>
+        <p class="idx-empty" id="idxEmpty" hidden>No utility matches that search.</p>
+      </div>
+      </div>
+    </section>
+
+    <div class="vrz"><div class="vrz-hit" id="vrz" role="separator" aria-orientation="vertical" aria-label="Resize editor and preview" tabindex="0"></div></div>
+
+    <section class="pane previewPane" aria-label="Preview">
+      <div class="ptools">
+        <div class="spacer"></div>
+        <span class="readout" id="readout" aria-live="off" hidden></span>
+        <div class="seg" role="group" aria-label="Select mode">
+          <button type="button" id="selMode" aria-pressed="true" title="Click elements in the preview to select them">Select mode</button>
+        </div>
+        <div class="seg" role="group" aria-label="Preview width" id="widthSeg">
+          <button type="button" data-w="0" aria-pressed="true">Fit</button>
+          <button type="button" data-w="375" aria-pressed="false">375</button>
+          <button type="button" data-w="768" aria-pressed="false">768</button>
+          <button type="button" data-w="1024" aria-pressed="false">1024</button>
+        </div>
+      </div>
+      <div class="stage" id="stage">
+        <iframe id="frame" title="Live preview" sandbox="allow-scripts allow-popups"></iframe>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+(function () {
+  var TW = 'https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.1.11';
+  var KEY = 'utility-play-v4';
+
+  var DEF_HTML = [
+    '<div class="relative grid min-h-screen grid-cols-[1fr_2.5rem_auto_2.5rem_1fr] grid-rows-[1fr_1px_auto_1px_1fr] bg-white [--pattern-fg:var(--color-gray-950)]/5 dark:bg-gray-950 dark:[--pattern-fg:var(--color-white)]/10">',
+    '  <div class="col-start-2 row-span-full border-x border-x-[color:var(--pattern-fg)] bg-[size:10px_10px] bg-[image:repeating-linear-gradient(315deg,var(--pattern-fg)_0,var(--pattern-fg)_1px,transparent_0,transparent_50%)]"></div>',
+    '  <div class="col-start-4 row-span-full border-x border-x-[color:var(--pattern-fg)] bg-[size:10px_10px] bg-[image:repeating-linear-gradient(315deg,var(--pattern-fg)_0,var(--pattern-fg)_1px,transparent_0,transparent_50%)]"></div>',
+    '  <div class="col-span-full row-start-2 bg-[color:var(--pattern-fg)]"></div>',
+    '  <div class="col-span-full row-start-4 bg-[color:var(--pattern-fg)]"></div>',
+    '  <div class="col-start-3 row-start-3 flex max-w-lg flex-col bg-gray-100 p-2 dark:bg-white/10">',
+    '    <div class="rounded-xl bg-white p-10 text-sm/7 text-gray-700 dark:bg-gray-950 dark:text-gray-300">',
+    '      <div class="space-y-6">',
+    '        <p>An advanced online playground for Tailwind CSS, including support for things like:</p>',
+    '        <ul class="space-y-3">',
+    '          <li class="flex gap-3"><span class="text-sky-500">&#10003;</span>Customizing your theme with @theme</li>',
+    '          <li class="flex gap-3"><span class="text-sky-500">&#10003;</span>Adding custom utilities with @utility</li>',
+    '          <li class="flex gap-3"><span class="text-sky-500">&#10003;</span>Adding custom variants with @variant</li>',
+    '          <li class="flex gap-3"><span class="text-sky-500">&#10003;</span>Instant preview and generated CSS</li>',
+    '        </ul>',
+    '        <p>Perfect for learning how the framework works, prototyping a new idea, or creating a demo to share online.</p>',
+    '        <p>Want to dig deeper into Tailwind?</p>',
+    '        <a href="https://tailwindcss.com/docs" target="_blank" rel="noopener" class="inline-block font-semibold text-gray-950 underline decoration-sky-500 underline-offset-4 dark:text-white">Read the docs &rarr;</a>',
+    '      </div>',
+    '    </div>',
+    '  </div>',
+    '</div>'
+  ].join('\n');
+
+  var DEF_CSS = [
+    '@import "tailwindcss";',
+    '',
+    '@custom-variant dark (&:where(.dark, .dark *));',
+    '',
+    '@theme {',
+    '  /* ... */',
+    '}'
+  ].join('\n');
+
+  var saved = {};
+  try { saved = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { saved = {}; }
+
+  var st = {
+    html: typeof saved.html === 'string' ? saved.html : DEF_HTML,
+    css: typeof saved.css === 'string' ? saved.css : DEF_CSS,
+    tab: 'html',
+    dark: saved.dark === undefined ? true : !!saved.dark,
+    width: saved.width || 0,
+    layout: saved.layout || 'split',
+    gen: 'all',
+    genOpen: true
+  };
+  var genCSS = '';
+
+  function $(s) { return document.querySelector(s); }
+  var ta = $('#ta'), hl = $('#hl'), gutter = $('#gutter'), pre = ta.previousElementSibling;
+  var frame = $('#frame'), stage = $('#stage'), workspace = $('#workspace');
+
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify({ html: st.html, css: st.css, dark: st.dark, width: st.width, layout: st.layout })); } catch (e) {}
+  }
+
+  /* ---------- highlighting ---------- */
+  function esc(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  function sp(c, t) { return '<span class="' + c + '">' + esc(t) + '</span>'; }
+
+  var hiTag = -1;
+  function hiClass(v) {
+    return v.split(/(\s+)/).map(function (tok) {
+      if (!tok || /^\s+$/.test(tok)) return esc(tok);
+      if (chg && chg.id === hiTag && chg.toks.indexOf(tok) > -1) return sp('chgt', tok);
+      var d = 0, idx = -1;
+      for (var i = 0; i < tok.length; i++) {
+        var ch = tok[i];
+        if (ch === '[' || ch === '(') d++;
+        else if (ch === ']' || ch === ')') d--;
+        else if (ch === ':' && d === 0) idx = i;
+      }
+      if (idx < 0) return esc(tok);
+      return sp('vr', tok.slice(0, idx + 1)) + esc(tok.slice(idx + 1));
+    }).join('');
+  }
+
+  function hiHTML(src) {
+    var re = /(<!--[\s\S]*?-->)|(<\/?)([A-Za-z][\w-]*)|(\s)([\w:@.-]+)(=)("[^"]*"|'[^']*')|(\/?>)/g;
+    var out = '', last = 0, m;
+    hiTag = -1;
+    while ((m = re.exec(src))) {
+      out += esc(src.slice(last, m.index));
+      last = re.lastIndex;
+      if (m[1]) out += sp('c', m[1]);
+      else if (m[3]) { if (m[2] === '<') hiTag++; out += sp('p', m[2]) + sp('t', m[3]); }
+      else if (m[5]) {
+        var q = m[7];
+        var inner = m[5] === 'class' ? hiClass(q.slice(1, -1)) : esc(q.slice(1, -1));
+        out += esc(m[4]) + sp('a', m[5]) + sp('p', '=') + '<span class="s">' + q[0] + inner + q[0] + '</span>';
+      } else out += sp('p', m[8]);
+    }
+    return out + esc(src.slice(last));
+  }
+
+  function hiCSS(src) {
+    var re = /(\/\*[\s\S]*?\*\/)|("[^"]*"|'[^']*')|(@[\w-]+)|(--[\w-]+)|([a-zA-Z-]+)(?=\s*:)|(\b\d[\w.%]*)/g;
+    var out = '', last = 0, m;
+    while ((m = re.exec(src))) {
+      out += esc(src.slice(last, m.index));
+      last = re.lastIndex;
+      if (m[1]) out += sp('c', m[1]);
+      else if (m[2]) out += sp('s', m[2]);
+      else if (m[3]) out += sp('at', m[3]);
+      else if (m[4]) out += sp('cv', m[4]);
+      else if (m[5]) out += sp('pr', m[5]);
+      else out += sp('n', m[6]);
+    }
+    return out + esc(src.slice(last));
+  }
+
+  function lineNumbers(text) {
+    var n = (text.match(/\n/g) || []).length + 1, a = new Array(n);
+    for (var i = 0; i < n; i++) a[i] = i + 1;
+    return a.join('\n');
+  }
+
+  var lastLines = -1;
+  var chg = null, cwCache = 0;
+  function refreshEditor() {
+    var v = ta.value;
+    hl.innerHTML = (st.tab === 'html' ? hiHTML(v) : hiCSS(v)) + '\n ';
+    var n = (v.match(/\n/g) || []).length;
+    if (n !== lastLines) { gutter.textContent = lineNumbers(v); lastLines = n; }
+    syncScroll();
+  }
+  function syncScroll() {
+    pre.scrollTop = ta.scrollTop; pre.scrollLeft = ta.scrollLeft; gutter.scrollTop = ta.scrollTop;
+    updateBand();
+  }
+  function selLines() {
+    if (typeof sel === 'undefined' || sel.id < 0 || st.tab !== 'html') return null;
+    var t = startTags(st.html)[sel.id];
+    if (!t) return null;
+    var a = st.html.slice(0, t.start).split('\n').length - 1;
+    var b = st.html.slice(0, t.end).split('\n').length - 1;
+    return { a: a, b: b };
+  }
+  function charW() {
+    if (cwCache) return cwCache;
+    var cs = getComputedStyle(ta), sp = document.createElement('span');
+    sp.style.cssText = 'position:absolute;visibility:hidden;white-space:pre;letter-spacing:0;font-family:' + cs.fontFamily + ';font-size:' + cs.fontSize;
+    sp.textContent = new Array(101).join('x');
+    document.body.appendChild(sp);
+    cwCache = sp.getBoundingClientRect().width / 100;
+    document.body.removeChild(sp);
+    return cwCache;
+  }
+  function lc(off) {
+    var head = st.html.slice(0, off);
+    return { line: head.split('\n').length - 1, col: off - (head.lastIndexOf('\n') + 1) };
+  }
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { cwCache = 0; updateBand(); });
+  function updateBand() {
+    var band = document.getElementById('selBand'), r = selLines();
+    if (!r) { band.hidden = true; return; }
+    var cs = getComputedStyle(ta), lh = parseFloat(cs.lineHeight), pt = parseFloat(cs.paddingTop), pl = parseFloat(cs.paddingLeft);
+    band.style.top = (pt + r.a * lh - ta.scrollTop) + 'px';
+    band.style.height = ((r.b - r.a + 1) * lh) + 'px';
+    band.hidden = false;
+  }
+  function clearChg() { if (chg) { chg = null; if (st.tab === 'html') refreshEditor(); } }
+  function revealChg() {
+    if (!chg || !chg.ranges) return;
+    var g = chg.ranges[0], p = lc(g.s), cw = charW(), pl = parseFloat(getComputedStyle(ta).paddingLeft);
+    var left = pl + p.col * cw, w = (g.e - g.s) * cw;
+    if (left < ta.scrollLeft + 8 || left + w > ta.scrollLeft + ta.clientWidth - 24) ta.scrollLeft = Math.max(0, left - 60);
+    updateBand();
+  }
+  var noReveal = false;
+  var VOIDS = { area: 1, base: 1, br: 1, col: 1, embed: 1, hr: 1, img: 1, input: 1, link: 1, meta: 1, source: 1, track: 1, wbr: 1 };
+  function caretElement(pos) {
+    var src = st.html, tags = startTags(src);
+    var ls = src.lastIndexOf('\n', pos - 1) + 1, le = src.indexOf('\n', pos);
+    if (le < 0) le = src.length;
+    var online = [];
+    tags.forEach(function (t, i) { if (t.start >= ls && t.start <= le) online.push(i); });
+    if (online.length) {
+      var pick = online[0];
+      online.forEach(function (i) { if (tags[i].start <= pos) pick = i; });
+      return pick;
+    }
+    var ev = [], re = /<\/([A-Za-z][\w-]*)\s*>/g, x;
+    tags.forEach(function (t, i) { ev.push({ p: t.start, open: true, i: i, n: t.name, self: !!VOIDS[t.name] || src.charAt(t.end - 2) === '/' }); });
+    while ((x = re.exec(src))) ev.push({ p: x.index, open: false, n: x[1].toLowerCase() });
+    ev.sort(function (a, b) { return a.p - b.p; });
+    var stack = [];
+    for (var k = 0; k < ev.length && ev[k].p < pos; k++) {
+      var e = ev[k];
+      if (e.open) { if (!e.self) stack.push(e); }
+      else { for (var j = stack.length - 1; j >= 0; j--) if (stack[j].n === e.n) { stack.length = j; break; } }
+    }
+    return stack.length ? stack[stack.length - 1].i : -1;
+  }
+  function selectFromEditor() {
+    if (st.tab !== 'html') return;
+    var id = caretElement(ta.selectionStart), tags = startTags(st.html);
+    if (id < 0 || id === sel.id || !tags[id]) return;
+    clearChg();
+    noReveal = true;
+    setSel(id, tags[id].name);
+    noReveal = false;
+    try { frame.contentWindow.postMessage({ tw: 'mark', id: id }, '*'); } catch (e) {}
+  }
+  ta.addEventListener('click', selectFromEditor);
+  ta.addEventListener('keyup', function (e) { if (/^(Arrow|Page|Home|End)/.test(e.key)) selectFromEditor(); });
+
+  function revealInEditor() {
+    var r = selLines();
+    if (!r) return;
+    var cs = getComputedStyle(ta), lh = parseFloat(cs.lineHeight), pt = parseFloat(cs.paddingTop);
+    var top = pt + r.a * lh, bot = pt + (r.b + 1) * lh, h = ta.clientHeight;
+    if (top < ta.scrollTop + lh) ta.scrollTop = Math.max(0, top - lh * 2);
+    else if (bot > ta.scrollTop + h - lh) ta.scrollTop = bot - h + lh * 3;
+    syncScroll();
+  }
+  ta.addEventListener('scroll', syncScroll);
+
+  function classesIn(src, t) {
+    var m = CLASS_RE.exec(src.slice(t.start, t.end));
+    if (!m) return [];
+    var q = m[2].charAt(0), v = (q === '"' || q === "'") ? m[2].slice(1, -1) : m[2];
+    return v.split(/\s+/).filter(Boolean);
+  }
+  function diffChg(oldSrc, newSrc) {
+    var ot = startTags(oldSrc), nt = startTags(newSrc);
+    if (ot.length !== nt.length) return null;
+    for (var i = 0; i < nt.length; i++) {
+      var a = classesIn(oldSrc, ot[i]), b = classesIn(newSrc, nt[i]);
+      if (a.join(' ') === b.join(' ')) continue;
+      var added = b.filter(function (t) { return a.indexOf(t) < 0; });
+      return added.length ? { id: i, toks: added } : null;
+    }
+    return null;
+  }
+  ta.addEventListener('input', function () {
+    chg = st.tab === 'html' ? diffChg(st.html, ta.value) : null;
+    st[st.tab] = ta.value;
+    refreshEditor();
+    save();
+    schedule(350);
+  });
+
+  var tabFree = false;
+  ta.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { tabFree = true; return; }
+    if (e.key === 'Tab' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      if (tabFree) { tabFree = false; return; }
+      e.preventDefault();
+      var ok = false;
+      try { ok = document.execCommand('insertText', false, '  '); } catch (err) {}
+      if (!ok) {
+        var s = ta.selectionStart;
+        ta.setRangeText('  ', s, ta.selectionEnd, 'end');
+        ta.dispatchEvent(new Event('input'));
+      }
+    } else if (e.key !== 'Shift') { tabFree = false; }
+  });
+
+  /* ---------- tabs ---------- */
+  function showTab(t) {
+    st.tab = t;
+    var isIdx = t === 'tree' || t === 'gen';
+    document.querySelector('.editor').hidden = isIdx;
+    document.getElementById('tree').hidden = t !== 'tree';
+    document.getElementById('gen').hidden = t !== 'gen';
+    if (t === 'tree') renderTree();
+    updateBand();
+    syncXtog();
+    if (isIdx) {
+      document.querySelectorAll('.tab').forEach(function (b) { b.setAttribute('aria-selected', String(b.dataset.tab === t)); });
+      return;
+    }
+    document.querySelectorAll('.tab').forEach(function (b) { b.setAttribute('aria-selected', String(b.dataset.tab === t)); });
+    ta.value = st[t];
+    ta.scrollTop = 0; ta.scrollLeft = 0;
+    lastLines = -1;
+    refreshEditor();
+  }
+  document.querySelectorAll('.tab').forEach(function (b) {
+    b.addEventListener('click', function () { showTab(b.dataset.tab); });
+  });
+
+
+  /* ---------- tidy ---------- */
+  function tidyHTML(src) {
+    var voids = { area: 1, base: 1, br: 1, col: 1, embed: 1, hr: 1, img: 1, input: 1, link: 1, meta: 1, source: 1, track: 1, wbr: 1 };
+    var tokens = src.match(/<!--[\s\S]*?-->|<[^>]+>|[^<]+/g) || [];
+    var depth = 0, out = [];
+    function pad(d) { return new Array(d + 1).join('  '); }
+    function info(t) {
+      var m = t.match(/^<(\/?)([A-Za-z][\w-]*)/);
+      if (!m) return null;
+      return { closing: !!m[1], name: m[2].toLowerCase(), self: /\/>$/.test(t) || !!voids[m[2].toLowerCase()] };
+    }
+    for (var i = 0; i < tokens.length; i++) {
+      var t = tokens[i];
+      if (t.charAt(0) !== '<') {
+        var x = t.replace(/\s+/g, ' ').trim();
+        if (!x) continue;
+        var prev = info(tokens[i - 1] || ''), next = info(tokens[i + 1] || '');
+        if (prev && !prev.closing && !prev.self && next && next.closing && next.name === prev.name && out.length) {
+          out[out.length - 1] += x + tokens[i + 1].replace(/\s+/g, ' ').trim();
+          depth = Math.max(0, depth - 1);
+          i++;
+        } else out.push(pad(depth) + x);
+        continue;
+      }
+      var inf = info(t);
+      if (!inf) { out.push(pad(depth) + t.trim()); continue; }
+      if (inf.closing) depth = Math.max(0, depth - 1);
+      out.push(pad(depth) + t.replace(/\s+/g, ' ').trim());
+      if (!inf.closing && !inf.self) depth++;
+    }
+    return out.join('\n');
+  }
+  function tidyCSS(src) {
+    var depth = 0;
+    return src.split('\n').map(function (line) {
+      var l = line.trim();
+      if (!l) return '';
+      var opens = (l.match(/\{/g) || []).length, closes = (l.match(/\}/g) || []).length;
+      if (l.charAt(0) === '}') depth = Math.max(0, depth - 1);
+      var r = new Array(depth + 1).join('  ') + l;
+      depth = Math.max(0, depth + opens - closes + (l.charAt(0) === '}' ? 1 : 0));
+      return r;
+    }).join('\n');
+  }
+
+
+  /* ---------- search ---------- */
+  if (!/Mac|iPhone|iPad/i.test(navigator.platform || navigator.userAgent || '')) $('#kbdHint').textContent = 'Ctrl K';
+
+  /* ---------- menu ---------- */
+  var menuBtn = $('#menuBtn'), menuEl = $('#menu');
+  function setMenu(open) { menuEl.hidden = !open; menuBtn.setAttribute('aria-expanded', String(open)); }
+  menuBtn.addEventListener('click', function (e) { e.stopPropagation(); setMenu(menuEl.hidden); });
+  $('#menuX').addEventListener('click', function () { setMenu(false); menuBtn.focus(); });
+  var ctxEl = $('#ctx');
+  function openCtx(x, y) {
+    var r = frame.getBoundingClientRect(), left = r.left + x, top = r.top + y;
+    $('#ctxTag').textContent = sel.id >= 0 ? '<' + sel.tag + '>' : '';
+    var cls = sel.id >= 0 ? (classOf(sel.id) || []).join(' ') : '';
+    if ($('#cvIn')) { $('#cvIn').value = cls; $('#cvOut').hidden = true; $('#cvCopy').disabled = true; }
+    ctxEl.hidden = false;
+    var w = ctxEl.offsetWidth, h = ctxEl.offsetHeight;
+    ctxEl.style.left = Math.max(8, Math.min(left, window.innerWidth - w - 8)) + 'px';
+    ctxEl.style.top = Math.max(8, Math.min(top, window.innerHeight - h - 8)) + 'px';
+  }
+  $('#ctxX').addEventListener('click', function () { ctxEl.hidden = true; });
+  document.addEventListener('keydown', function (e) { if (e.key !== 'Escape') return; if (!ctxEl.hidden) ctxEl.hidden = true; else if (!menuEl.hidden) { setMenu(false); menuBtn.focus(); } });
+
+  /* ---------- resizer ---------- */
+  var rz = $('#resizer'), lowerEl = $('#lower'), edPane = $('.editorPane'), rzDrag = false;
+  function setLower(h) {
+    var total = edPane.clientHeight - $('.tabs').offsetHeight - rz.offsetHeight;
+    h = Math.max(90, Math.min(total - 90, h));
+    lowerEl.style.flex = '0 0 ' + h + 'px';
+    updateBand();
+  }
+  rz.addEventListener('pointerdown', function (e) { rzDrag = true; try { rz.setPointerCapture(e.pointerId); } catch (x) {} document.body.style.userSelect = 'none'; document.body.classList.add('dragging'); e.preventDefault(); });
+  window.addEventListener('pointermove', function (e) {
+    if (!rzDrag) return;
+    setLower(edPane.getBoundingClientRect().bottom - e.clientY - rz.offsetHeight / 2);
+  });
+  function rzEnd() { rzDrag = false; document.body.style.userSelect = ''; document.body.classList.remove('dragging'); }
+  window.addEventListener('pointerup', rzEnd);
+  window.addEventListener('pointercancel', rzEnd);
+  rz.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowUp') { e.preventDefault(); setLower(lowerEl.offsetHeight + 24); }
+    else if (e.key === 'ArrowDown') { e.preventDefault(); setLower(lowerEl.offsetHeight - 24); }
+  });
+
+  /* ---------- expand / collapse toggles ---------- */
+  var xState = { index: false, tree: true };
+  function syncXtog() {
+    [['index', '#xtog', '#xtogLbl'], ['tree', '#xtogTree', '#xtogTreeLbl']].forEach(function (a) {
+      var on = xState[a[0]];
+      $(a[1]).title = on ? 'Collapse all' : 'Expand all';
+      $(a[1]).setAttribute('aria-label', on ? 'Collapse all' : 'Expand all');
+      $(a[1]).setAttribute('aria-expanded', String(on));
+    });
+  }
+  $('#xtog').addEventListener('click', function () {
+    xState.index = !xState.index;
+    $(xState.index ? '#idxExpand' : '#idxCollapse').click();
+    syncXtog();
+  });
+  $('#xtogTree').addEventListener('click', function () {
+    xState.tree = !xState.tree;
+    $(xState.tree ? '#treeExpand' : '#treeCollapse').click();
+    syncXtog();
+  });
+
+  /* ---------- column resizer ---------- */
+  var vrz = $('#vrz'), wsEl = $('#workspace'), vDrag = false;
+  function setCol(px) {
+    var w = wsEl.clientWidth;
+    px = Math.max(280, Math.min(w - 280, px));
+    wsEl.style.setProperty('--c1', px + 'px');
+    updateBand();
+  }
+  vrz.addEventListener('pointerdown', function (e) { vDrag = true; try { vrz.setPointerCapture(e.pointerId); } catch (x) {} document.body.style.userSelect = 'none'; document.body.classList.add('dragging'); e.preventDefault(); });
+  window.addEventListener('pointermove', function (e) { if (vDrag) setCol(e.clientX - wsEl.getBoundingClientRect().left); });
+  function vEnd() { vDrag = false; document.body.style.userSelect = ''; document.body.classList.remove('dragging'); }
+  window.addEventListener('pointerup', vEnd);
+  window.addEventListener('pointercancel', vEnd);
+  vrz.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowLeft') { e.preventDefault(); setCol(edPane.offsetWidth - 24); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); setCol(edPane.offsetWidth + 24); }
+  });
+
+  /* ---------- preview ---------- */
+  function reporter() {
+    function pick() {
+      var best = '';
+      document.querySelectorAll('style').forEach(function (s) {
+        if (s.type === 'text/tailwindcss' || s.id === 'wi-style' || s.id === 'wi-base') return;
+        var t = s.textContent || '';
+        if (t.length > best.length) best = t;
+      });
+      return best;
+    }
+    var last = null, timer;
+    function send() {
+      var c = pick();
+      if (c && c !== last) { last = c; parent.postMessage({ tw: 'css', css: c }, '*'); }
+    }
+    new MutationObserver(function () { clearTimeout(timer); timer = setTimeout(send, 80); })
+      .observe(document.documentElement, { childList: true, subtree: true, characterData: true });
+    var selId = typeof window.__wiSel === 'number' ? window.__wiSel : -1;
+    var selMode = window.__wiMode !== false;
+    var sty = document.createElement('style');
+    sty.id = 'wi-style';
+    sty.textContent = '[data-wi-hover]{outline:1px dashed #38b6f2!important;outline-offset:-1px}[data-wi-sel]{outline:2px solid #38b6f2!important;outline-offset:-2px}';
+    document.head.appendChild(sty);
+    function owner(el) {
+      while (el && el.nodeType === 1) {
+        if (el.hasAttribute('data-wi')) return el;
+        el = el.parentElement;
+      }
+      return null;
+    }
+    function byId(id) { return document.querySelector('[data-wi="' + id + '"]'); }
+    function shot(id, req) {
+      function fail() { parent.postMessage({ tw: 'shotres', req: req, blob: null }, '*'); }
+      try {
+        var el = byId(id);
+        if (!el) return fail();
+        var n = 0;
+        var inl = function (src, dst) {
+          if (++n > 600) return;
+          var cs = getComputedStyle(src), t = '';
+          for (var i = 0; i < cs.length; i++) t += cs[i] + ':' + cs.getPropertyValue(cs[i]) + ';';
+          dst.setAttribute('style', t + 'outline:none;');
+          dst.removeAttribute('data-wi'); dst.removeAttribute('data-wi-sel'); dst.removeAttribute('data-wi-hover');
+          for (var k = 0; k < src.children.length; k++) {
+            if (/^(script|style|iframe)$/i.test(src.children[k].tagName)) { dst.removeChild(dst.children[k]); k--; continue; }
+            inl(src.children[k], dst.children[k]);
+          }
+        };
+        var r = el.getBoundingClientRect(), w = Math.max(1, Math.ceil(r.width)), h = Math.max(1, Math.ceil(r.height));
+        var c = el.cloneNode(true);
+        inl(el, c);
+        var xml = new XMLSerializer().serializeToString(c);
+        var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h + '"><foreignObject x="0" y="0" width="' + w + '" height="' + h + '">' + xml + '</foreignObject></svg>';
+        var img = new Image();
+        img.onload = function () {
+          try {
+            var sc = Math.min(1, 1200 / w, 1200 / h), cv = document.createElement('canvas');
+            cv.width = Math.max(1, Math.round(w * sc)); cv.height = Math.max(1, Math.round(h * sc));
+            var cx = cv.getContext('2d');
+            cx.fillStyle = getComputedStyle(document.documentElement).backgroundColor || '#fff';
+            cx.fillRect(0, 0, cv.width, cv.height);
+            cx.drawImage(img, 0, 0, cv.width, cv.height);
+            cv.toBlob(function (b) { parent.postMessage({ tw: 'shotres', req: req, blob: b }, '*'); }, 'image/png');
+          } catch (e) { fail(); }
+        };
+        img.onerror = fail;
+        img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+      } catch (e) { fail(); }
+    }
+    function mark(id) {
+      var o = document.querySelector('[data-wi-sel]');
+      if (o) o.removeAttribute('data-wi-sel');
+      selId = id;
+      var e = id >= 0 ? byId(id) : null;
+      if (e) e.setAttribute('data-wi-sel', '');
+      return e;
+    }
+    function clearHover() {
+      var h = document.querySelector('[data-wi-hover]');
+      if (h) h.removeAttribute('data-wi-hover');
+    }
+    document.addEventListener('mouseover', function (e) {
+      if (!selMode) return;
+      clearHover();
+      var o = owner(e.target);
+      if (o) o.setAttribute('data-wi-hover', '');
+    }, true);
+    document.addEventListener('mouseout', function (e) { if (!e.relatedTarget) clearHover(); }, true);
+    document.addEventListener('click', function (e) {
+      if (!selMode) return;
+      var o = owner(e.target);
+      if (!o) return;
+      e.preventDefault();
+      e.stopPropagation();
+      var id = Number(o.getAttribute('data-wi'));
+      mark(id);
+      parent.postMessage({ tw: 'select', id: id, tag: o.tagName.toLowerCase() }, '*');
+    }, true);
+    document.addEventListener('contextmenu', function (e) {
+      var o = owner(e.target);
+      if (!o) return;
+      e.preventDefault();
+      var id = Number(o.getAttribute('data-wi'));
+      mark(id);
+      parent.postMessage({ tw: 'select', id: id, tag: o.tagName.toLowerCase() }, '*');
+      parent.postMessage({ tw: 'ctx', x: e.clientX, y: e.clientY }, '*');
+    }, true);
+    document.addEventListener('keydown', function (e) {
+      if (!selMode || selId < 0 || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+      var k = e.key;
+      if (k !== 'ArrowUp' && k !== 'ArrowDown' && k !== 'ArrowLeft' && k !== 'ArrowRight') return;
+      var t = e.target;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
+      e.preventDefault();
+      parent.postMessage({ tw: 'key', key: k }, '*');
+    }, true);
+    addEventListener('load', function () { setTimeout(send, 200); setTimeout(send, 900); });
+    addEventListener('load', function () {
+      if (selId < 0) return;
+      var e = mark(selId);
+      parent.postMessage({ tw: 'select', id: e ? selId : -1, tag: e ? e.tagName.toLowerCase() : '' }, '*');
+    });
+    addEventListener('message', function (e) {
+      var d = e.data;
+      if (d && d.tw === 'theme') document.documentElement.classList.toggle('dark', !!d.dark);
+      if (d && d.tw === 'setclass') {
+        var el = byId(d.id);
+        if (el) { if (d.cls) el.setAttribute('class', d.cls); else el.removeAttribute('class'); }
+      }
+      if (d && d.tw === 'mode') { selMode = !!d.on; if (!selMode) clearHover(); }
+      if (d && d.tw === 'unselect') mark(-1);
+      if (d && d.tw === 'shot') shot(d.id, d.req);
+      if (d && d.tw === 'mark') {
+        var me = mark(d.id);
+        if (me && me.scrollIntoView) me.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      }
+    });
+  }
+
+  function buildDoc() {
+    var css = st.css.replace(/<\/style/gi, '<\\/style');
+    return '<!doctype html><html' + (st.dark ? ' class="dark"' : '') + '><head><meta charset="utf-8">' +
+      '<meta name="viewport" content="width=device-width,initial-scale=1">' +
+      '<style id="wi-base">html{background:#fff;color:#111}html.dark{background:#0b0f16;color:#e5e7eb}</style>' +
+      '<script src="' + TW + '"><\/script>' +
+      '<style type="text/tailwindcss">' + css + '</style></head><body>' + instrument(st.html) +
+      '<script>window.__wiSel=' + sel.id + ';window.__wiMode=' + (selMode ? 'true' : 'false') + '<\/script>' +
+      '<script>(' + reporter.toString() + ')()<\/script></body></html>';
+  }
+
+  var pt, waitTimer;
+  function schedule(ms) { clearTimeout(pt); pt = setTimeout(render, ms); }
+  function render() {
+    if (!genCSS) {
+      $('#genSize').textContent = 'building';
+      clearTimeout(waitTimer);
+      waitTimer = setTimeout(function () {
+        if (!genCSS) { $('#genPre').textContent = '/* Tailwind has not answered yet. Check your connection. */'; $('#genGutter').textContent = '1'; }
+      }, 9000);
+    }
+    frame.srcdoc = buildDoc();
+  }
+
+  window.addEventListener('message', function (e) {
+    if (e.source !== frame.contentWindow) return;
+    var d = e.data;
+    if (d && d.tw === 'css' && typeof d.css === 'string') { genCSS = d.css; renderGen(); }
+  });
+
+  /* ---------- generated CSS ---------- */
+  function prettyCSS(css) {
+    if (css.split('\n').length > css.length / 120) return css;
+    var out = '', depth = 0, paren = 0, str = null, ind = function (d) { return new Array(d + 1).join('  '); };
+    for (var i = 0; i < css.length; i++) {
+      var ch = css[i];
+      if (str) { out += ch; if (ch === str) str = null; continue; }
+      if (ch === '"' || ch === "'") { str = ch; out += ch; continue; }
+      if (ch === '(') paren++;
+      if (ch === ')') paren--;
+      if (ch === '{' && paren === 0) { depth++; out += ' {\n' + ind(depth); }
+      else if (ch === '}' && paren === 0) { depth = Math.max(0, depth - 1); out = out.replace(/\s+$/, '') + '\n' + ind(depth) + '}\n' + ind(depth); }
+      else if (ch === ';' && paren === 0) out += ';\n' + ind(depth);
+      else out += ch;
+    }
+    return out.split('\n').map(function (l) { return l.replace(/\s+$/, ''); }).join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  }
+
+  function splitLayers(css) {
+    var parts = { properties: [], theme: [], base: [], components: [], utilities: [] };
+    var depth = 0, start = 0;
+    function take(chunk) {
+      var c = chunk.trim();
+      if (!c) return;
+      if (/^@layer\s+properties/.test(c) || /^@property/.test(c)) parts.properties.push(c);
+      else if (/^@layer\s+theme\s*\{/.test(c)) parts.theme.push(c);
+      else if (/^@layer\s+base\s*\{/.test(c)) parts.base.push(c);
+      else if (/^@layer\s+components\s*\{/.test(c)) parts.components.push(c);
+      else if (/^@layer\s+utilities\s*\{/.test(c)) parts.utilities.push(c);
+    }
+    for (var i = 0; i < css.length; i++) {
+      var ch = css[i];
+      if (ch === '{') depth++;
+      else if (ch === '}') { depth--; if (depth === 0) { take(css.slice(start, i + 1)); start = i + 1; } }
+      else if (ch === ';' && depth === 0) { take(css.slice(start, i + 1)); start = i + 1; }
+    }
+    return parts;
+  }
+
+  function renderGen() {
+    var raw = genCSS;
+    $('#genSize').textContent = raw ? (new Blob([raw]).size / 1000).toFixed(2) + ' kB' : 'waiting';
+    var text;
+    if (!raw) text = '/* Waiting for Tailwind to build... */';
+    else {
+      var css = prettyCSS(raw);
+      if (st.gen === 'all') text = css;
+      else {
+        var list = splitLayers(css)[st.gen] || [];
+        text = list.length ? list.join('\n\n') : '/* Nothing in this layer for the current HTML. */';
+      }
+    }
+    $('#genPre').innerHTML = hiCSS(text);
+    $('#genGutter').textContent = lineNumbers(text);
+  }
+
+  $('#genTabs').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-g]');
+    if (!b) return;
+    st.gen = b.dataset.g;
+    document.querySelectorAll('#genTabs button').forEach(function (x) { x.setAttribute('aria-selected', String(x === b)); });
+    renderGen();
+  });
+  $('#genHead').addEventListener('click', function () {
+    st.genOpen = !st.genOpen;
+    $('#gen').classList.toggle('closed', !st.genOpen);
+    $('#genBody').style.display = st.genOpen ? 'flex' : 'none';
+    $('#genHead').setAttribute('aria-expanded', String(st.genOpen));
+  });
+
+  /* ---------- toolbar: layout, theme, width ---------- */
+  function setLayout(l) {
+    st.layout = l;
+    workspace.dataset.layout = l;
+    document.querySelectorAll('#layoutSeg button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.layout === l)); });
+    save();
+  }
+  $('#layoutSeg').addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (b) setLayout(b.dataset.layout);
+  });
+
+  function setDark(d) {
+    st.dark = d;
+    document.querySelectorAll('#themeSeg button').forEach(function (b) { b.setAttribute('aria-pressed', String((b.dataset.dark === '1') === d)); });
+    try { frame.contentWindow.postMessage({ tw: 'theme', dark: d }, '*'); } catch (e) {}
+    save();
+  }
+  $('#themeSeg').addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (b) setDark(b.dataset.dark === '1');
+  });
+
+  function setWidth(w) {
+    st.width = w;
+    frame.style.width = w ? w + 'px' : '100%';
+    stage.dataset.fixed = w ? '1' : '';
+    document.querySelectorAll('#widthSeg button').forEach(function (b) { b.setAttribute('aria-pressed', String(Number(b.dataset.w) === w)); });
+    save();
+  }
+  $('#widthSeg').addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (b) setWidth(Number(b.dataset.w));
+  });
+
+  function bp(w) {
+    if (w >= 1536) return '2xl';
+    if (w >= 1280) return 'xl';
+    if (w >= 1024) return 'lg';
+    if (w >= 768) return 'md';
+    if (w >= 640) return 'sm';
+    return 'base';
+  }
+  if (window.ResizeObserver) {
+    new ResizeObserver(function () {
+      var w = Math.round(frame.getBoundingClientRect().width);
+      $('#readout').textContent = w ? w + 'px · ' + bp(w) : '';
+    }).observe(frame);
+  }
+
+  /* ---------- index tab ---------- */
+  var SCALE = [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64, 72, 80, 96];
+  var COLORS = 'slate, gray, zinc, neutral, stone, red, orange, amber, yellow, lime, green, emerald, teal, cyan, sky, blue, indigo, violet, purple, fuchsia, pink, rose';
+  var PALETTE_NOTE = 'Palette: ' + COLORS + '. Shades 50, 100 to 900 in steps of 100, and 950.';
+  var CT = [['3xs', '16rem'], ['2xs', '18rem'], ['xs', '20rem'], ['sm', '24rem'], ['md', '28rem'], ['lg', '32rem'], ['xl', '36rem'], ['2xl', '42rem'], ['3xl', '48rem'], ['4xl', '56rem'], ['5xl', '64rem'], ['6xl', '72rem'], ['7xl', '80rem']];
+  var FRACS = [['1/2', '1 / 2', '50%'], ['1/3', '1 / 3', '33.333%'], ['2/3', '2 / 3', '66.667%'], ['1/4', '1 / 4', '25%'], ['3/4', '3 / 4', '75%']];
+  var CHEV = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+
+  function L(s) {
+    return s.trim().split('\n').map(function (l) {
+      var p = l.split('|');
+      return [p[0].trim(), (p[1] || '').trim(), (p[2] || '').trim()];
+    });
+  }
+  function K(pre, prop, ent) {
+    return ent.split(',').map(function (e) {
+      e = e.trim();
+      var i = e.indexOf(':');
+      var s = i < 0 ? e : e.slice(0, i).trim();
+      var v = i < 0 ? e : e.slice(i + 1).trim();
+      return [pre + '-' + s, prop + ': ' + v + ';', ''];
+    });
+  }
+  function SP(pre, tpl, o) {
+    o = o || {};
+    var r = [];
+    if (o.auto) r.push([pre + '-auto', tpl.split('$').join('auto'), '']);
+    r.push([pre + '-px', tpl.split('$').join('1px'), '1px']);
+    SCALE.forEach(function (n) {
+      r.push([pre + '-' + n, tpl.split('$').join('calc(var(--spacing) * ' + n + ')'), n ? (n * 0.25) + 'rem / ' + (n * 4) + 'px' : '0px']);
+    });
+    return r;
+  }
+  function CTR(pre, prop) {
+    return CT.map(function (c) { return [pre + '-' + c[0], prop + ': var(--container-' + c[0] + ');', c[1]]; });
+  }
+  function FR(pre, prop) {
+    return FRACS.map(function (f) { return [pre + '-' + f[0], prop + ': calc(' + f[1] + ' * 100%);', f[2]]; });
+  }
+  function COL(pre, prop) {
+    return L(
+      pre + '-inherit | ' + prop + ': inherit;\n' +
+      pre + '-current | ' + prop + ': currentColor;\n' +
+      pre + '-transparent | ' + prop + ': transparent;\n' +
+      pre + '-black | ' + prop + ': var(--color-black);\n' +
+      pre + '-white | ' + prop + ': var(--color-white);\n' +
+      pre + '-<color>-<shade> | ' + prop + ': var(--color-<color>-<shade>); | e.g. ' + pre + '-sky-500\n' +
+      pre + '-<color>/<opacity> | ' + prop + ': color-mix(in oklab, <color> <opacity>%, transparent); | e.g. ' + pre + '-sky-500/50'
+    );
+  }
+  function NUM(pre, prop, nums, fn, note) {
+    return nums.map(function (n) { return [pre + '-' + n, prop + ': ' + fn(n) + ';', note ? note(n) : '']; });
+  }
+  function RG(a, b) { var r = []; for (var i = a; i <= b; i++) r.push(i); return r; }
+  function I(n, s, d, r) { return { n: n, s: s, d: d, r: typeof r === 'string' ? L(r) : r }; }
+
+  var DATA = [
+    { n: 'Layout', i: [
+      I('Aspect Ratio', 'aspect-ratio', 'Utilities for controlling the aspect ratio of an element.', `
+aspect-auto | aspect-ratio: auto;
+aspect-square | aspect-ratio: 1 / 1;
+aspect-video | aspect-ratio: 16 / 9;
+aspect-<ratio> | aspect-ratio: <ratio>; | aspect-3/2 sets 3 / 2`),
+      I('Container', 'max-width', 'Sets width to 100% and caps max-width at the current breakpoint.', `
+container | width: 100%; | base
+container | max-width: 40rem; | sm and up
+container | max-width: 48rem; | md and up
+container | max-width: 64rem; | lg and up
+container | max-width: 80rem; | xl and up
+container | max-width: 96rem; | 2xl and up`),
+      I('Columns', 'columns', 'Utilities for controlling the number of columns within an element.',
+        NUM('columns', 'columns', [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], function (n) { return n; }, function (n) { return n + ' columns'; })
+          .concat(CTR('columns', 'columns')).concat(L('columns-auto | columns: auto;'))),
+      I('Break After', 'break-after', 'Utilities for controlling how a column or page should break after an element.',
+        K('break-after', 'break-after', 'auto, avoid, all, avoid-page, page, left, right, column')),
+      I('Break Before', 'break-before', 'Utilities for controlling how a column or page should break before an element.',
+        K('break-before', 'break-before', 'auto, avoid, all, avoid-page, page, left, right, column')),
+      I('Break Inside', 'break-inside', 'Utilities for controlling how a column or page should break within an element.',
+        K('break-inside', 'break-inside', 'auto, avoid, avoid-page, avoid-column')),
+      I('Box Sizing', 'box-sizing', 'Utilities for controlling how the browser calculates an element size.', `
+box-border | box-sizing: border-box; | padding and border count inside the width
+box-content | box-sizing: content-box; | padding and border add to the width`),
+      I('Display', 'display', 'Utilities for controlling the display box type of an element.', `
+block | display: block;
+inline-block | display: inline-block;
+inline | display: inline;
+flex | display: flex;
+inline-flex | display: inline-flex;
+grid | display: grid;
+inline-grid | display: inline-grid;
+contents | display: contents;
+flow-root | display: flow-root;
+table | display: table;
+table-row | display: table-row;
+table-cell | display: table-cell;
+list-item | display: list-item;
+hidden | display: none;`),
+      I('Float', 'float', 'Utilities for controlling the wrapping of content around an element.', `
+float-start | float: inline-start;
+float-end | float: inline-end;
+float-right | float: right;
+float-left | float: left;
+float-none | float: none;`),
+      I('Clear', 'clear', 'Utilities for controlling the wrapping of content around an element.', `
+clear-start | clear: inline-start;
+clear-end | clear: inline-end;
+clear-left | clear: left;
+clear-right | clear: right;
+clear-both | clear: both;
+clear-none | clear: none;`),
+      I('Isolation', 'isolation', 'Utilities for controlling whether an element creates a new stacking context.', `
+isolate | isolation: isolate;
+isolation-auto | isolation: auto;`),
+      I('Object Fit', 'object-fit', 'Utilities for controlling how a replaced element content should be resized.',
+        K('object', 'object-fit', 'contain, cover, fill, none, scale-down')),
+      I('Object Position', 'object-position', 'Utilities for controlling how a replaced element content is positioned within its container.',
+        K('object', 'object-position', 'top-left:top left, top, top-right:top right, left, center, right, bottom-left:bottom left, bottom, bottom-right:bottom right')),
+      I('Overflow', 'overflow', 'Utilities for controlling how an element handles content that is too large for the container.',
+        K('overflow', 'overflow', 'auto, hidden, clip, visible, scroll')
+          .concat(K('overflow-x', 'overflow-x', 'auto, hidden, clip, visible, scroll'))
+          .concat(K('overflow-y', 'overflow-y', 'auto, hidden, clip, visible, scroll'))),
+      I('Position', 'position', 'Utilities for controlling how an element is positioned in the document.',
+        K('', 'position', 'static, fixed, absolute, relative, sticky').map(function (r) { r[0] = r[0].slice(1); return r; })),
+      I('Top / Right / Bottom / Left', 'top-right-bottom-left', 'Utilities for controlling the placement of positioned elements.', `
+inset-0 | inset: calc(var(--spacing) * 0); | all four sides
+inset-x-0 | inset-inline: calc(var(--spacing) * 0); | left and right
+inset-y-0 | inset-block: calc(var(--spacing) * 0); | top and bottom
+top-0 | top: calc(var(--spacing) * 0);
+right-0 | right: calc(var(--spacing) * 0);
+bottom-0 | bottom: calc(var(--spacing) * 0);
+left-0 | left: calc(var(--spacing) * 0);
+start-0 | inset-inline-start: calc(var(--spacing) * 0); | follows text direction
+end-0 | inset-inline-end: calc(var(--spacing) * 0); | follows text direction
+inset-px | inset: 1px;
+inset-full | inset: 100%;
+inset-1/2 | inset: calc(1 / 2 * 100%); | 50%
+-inset-4 | inset: calc(var(--spacing) * -4); | -1rem / -16px
+inset-auto | inset: auto;`),
+      I('Visibility', 'visibility', 'Utilities for controlling the visibility of an element.', `
+visible | visibility: visible;
+invisible | visibility: hidden; | keeps its space in the layout
+collapse | visibility: collapse;`),
+      I('Z-Index', 'z-index', 'Utilities for controlling the stack order of an element.',
+        NUM('z', 'z-index', [0, 10, 20, 30, 40, 50], function (n) { return n; })
+          .concat(L('z-auto | z-index: auto;\nz-<number> | z-index: <number>; | z-[999] for an arbitrary value')))
+    ] },
+
+    { n: 'Spacing', i: [
+      I('Padding', 'padding', 'Utilities for controlling an element padding. Sides: px, py, pt, pr, pb, pl, ps, pe.',
+        SP('p', 'padding: $;').concat(L(`
+px-4 | padding-inline: calc(var(--spacing) * 4); | left and right
+py-4 | padding-block: calc(var(--spacing) * 4); | top and bottom
+pt-4 | padding-top: calc(var(--spacing) * 4);
+pr-4 | padding-right: calc(var(--spacing) * 4);
+pb-4 | padding-bottom: calc(var(--spacing) * 4);
+pl-4 | padding-left: calc(var(--spacing) * 4);
+ps-4 | padding-inline-start: calc(var(--spacing) * 4); | follows text direction
+pe-4 | padding-inline-end: calc(var(--spacing) * 4); | follows text direction`))),
+      I('Margin', 'margin', 'Utilities for controlling an element margin. Sides: mx, my, mt, mr, mb, ml, ms, me. Prefix with a dash for negative values.',
+        SP('m', 'margin: $;', { auto: true }).concat(L(`
+-m-4 | margin: calc(var(--spacing) * -4); | -1rem / -16px
+mx-auto | margin-inline: auto; | centers a block horizontally
+mt-4 | margin-top: calc(var(--spacing) * 4);
+mb-4 | margin-bottom: calc(var(--spacing) * 4);`))),
+      I('Space Between', 'margin', 'Utilities for controlling the space between child elements. Gap is usually the better choice in flex and grid.', `
+space-x-4 | margin-inline on every child except the last | 1rem between children
+space-y-4 | margin-block on every child except the last | 1rem between children
+space-x-reverse | --tw-space-x-reverse: 1; | for flex-row-reverse
+space-y-reverse | --tw-space-y-reverse: 1; | for flex-col-reverse`)
+    ] },
+
+    { n: 'Flexbox & Grid', i: [
+      I('Flex Basis', 'flex-basis', 'Utilities for controlling the initial size of flex items.',
+        L('basis-auto | flex-basis: auto;\nbasis-full | flex-basis: 100%;\nbasis-px | flex-basis: 1px;')
+          .concat(NUM('basis', 'flex-basis', [0, 1, 2, 4, 8, 16, 32, 64], function (n) { return 'calc(var(--spacing) * ' + n + ')'; }, function (n) { return (n * 0.25) + 'rem / ' + (n * 4) + 'px'; }))
+          .concat(FR('basis', 'flex-basis')).concat(CTR('basis', 'flex-basis'))),
+      I('Flex Direction', 'flex-direction', 'Utilities for controlling the direction of flex items.',
+        K('flex', 'flex-direction', 'row, row-reverse, col:column, col-reverse:column-reverse')),
+      I('Flex Wrap', 'flex-wrap', 'Utilities for controlling how flex items wrap.',
+        K('flex', 'flex-wrap', 'nowrap, wrap, wrap-reverse')),
+      I('Flex', 'flex', 'Utilities for controlling how flex items both grow and shrink.', `
+flex-1 | flex: 1; | 1 1 0%
+flex-auto | flex: 1 1 auto;
+flex-initial | flex: 0 auto;
+flex-none | flex: none;
+flex-<number> | flex: <number>; | flex-3 sets flex: 3
+flex-<fraction> | flex: calc(<fraction> * 100%); | flex-1/2 sets 50%`),
+      I('Flex Grow', 'flex-grow', 'Utilities for controlling how flex items grow.', `
+grow | flex-grow: 1;
+grow-0 | flex-grow: 0;
+grow-<number> | flex-grow: <number>; | grow-3 sets 3`),
+      I('Flex Shrink', 'flex-shrink', 'Utilities for controlling how flex items shrink.', `
+shrink | flex-shrink: 1;
+shrink-0 | flex-shrink: 0; | the item keeps its size
+shrink-<number> | flex-shrink: <number>; | shrink-3 sets 3`),
+      I('Order', 'order', 'Utilities for controlling the order of flex and grid items.',
+        NUM('order', 'order', RG(1, 12), function (n) { return n; })
+          .concat(L('order-first | order: -9999;\norder-last | order: 9999;\norder-none | order: 0;\n-order-1 | order: calc(1 * -1); | negative order'))),
+      I('Grid Template Columns', 'grid-template-columns', 'Utilities for specifying the columns in a grid layout.',
+        NUM('grid-cols', 'grid-template-columns', RG(1, 12), function (n) { return 'repeat(' + n + ', minmax(0, 1fr))'; })
+          .concat(L('grid-cols-none | grid-template-columns: none;\ngrid-cols-subgrid | grid-template-columns: subgrid;\ngrid-cols-[<value>] | grid-template-columns: <value>; | grid-cols-[1fr_2.5rem_auto] uses underscores for spaces'))),
+      I('Grid Column, start/end', 'grid-column', 'Utilities for controlling how elements are sized and placed across grid columns.',
+        L('col-auto | grid-column: auto;\ncol-span-full | grid-column: 1 / -1; | every column')
+          .concat(NUM('col-span', 'grid-column', RG(1, 12), function (n) { return 'span ' + n + ' / span ' + n; }))
+          .concat(NUM('col-start', 'grid-column-start', RG(1, 13), function (n) { return n; }))
+          .concat(L('col-start-auto | grid-column-start: auto;'))
+          .concat(NUM('col-end', 'grid-column-end', RG(1, 13), function (n) { return n; }))
+          .concat(L('col-end-auto | grid-column-end: auto;'))),
+      I('Grid Template Rows', 'grid-template-rows', 'Utilities for specifying the rows in a grid layout.',
+        NUM('grid-rows', 'grid-template-rows', RG(1, 12), function (n) { return 'repeat(' + n + ', minmax(0, 1fr))'; })
+          .concat(L('grid-rows-none | grid-template-rows: none;\ngrid-rows-subgrid | grid-template-rows: subgrid;\ngrid-rows-[<value>] | grid-template-rows: <value>;'))),
+      I('Grid Row, start/end', 'grid-row', 'Utilities for controlling how elements are sized and placed across grid rows.',
+        L('row-auto | grid-row: auto;\nrow-span-full | grid-row: 1 / -1; | every row')
+          .concat(NUM('row-span', 'grid-row', RG(1, 12), function (n) { return 'span ' + n + ' / span ' + n; }))
+          .concat(NUM('row-start', 'grid-row-start', RG(1, 13), function (n) { return n; }))
+          .concat(NUM('row-end', 'grid-row-end', RG(1, 13), function (n) { return n; }))),
+      I('Grid Auto Flow', 'grid-auto-flow', 'Utilities for controlling how elements in a grid are auto-placed.',
+        K('grid-flow', 'grid-auto-flow', 'row, col:column, dense, row-dense:row dense, col-dense:column dense')),
+      I('Grid Auto Columns / Rows', 'grid-auto-columns', 'Utilities for controlling the size of implicitly created grid columns and rows.',
+        K('auto-cols', 'grid-auto-columns', 'auto, min:min-content, max:max-content, fr:minmax(0, 1fr)')
+          .concat(K('auto-rows', 'grid-auto-rows', 'auto, min:min-content, max:max-content, fr:minmax(0, 1fr)'))),
+      I('Gap', 'gap', 'Utilities for controlling gutters between grid and flexbox items.',
+        SP('gap', 'gap: $;').concat(L('gap-x-4 | column-gap: calc(var(--spacing) * 4); | 1rem\ngap-y-4 | row-gap: calc(var(--spacing) * 4); | 1rem'))),
+      I('Justify Content', 'justify-content', 'Utilities for controlling how flex and grid items are positioned along the main axis.',
+        K('justify', 'justify-content', 'normal, start:flex-start, end:flex-end, center, between:space-between, around:space-around, evenly:space-evenly, stretch')),
+      I('Justify Items', 'justify-items', 'Utilities for controlling how grid items are aligned along their inline axis.',
+        K('justify-items', 'justify-items', 'start, end, center, stretch, normal')),
+      I('Justify Self', 'justify-self', 'Utilities for controlling how an individual grid item is aligned along its inline axis.',
+        K('justify-self', 'justify-self', 'auto, start, end, center, stretch')),
+      I('Align Content', 'align-content', 'Utilities for controlling how rows are positioned in multi-row flex and grid containers.',
+        K('content', 'align-content', 'normal, center, start, end, between:space-between, around:space-around, evenly:space-evenly, baseline, stretch')),
+      I('Align Items', 'align-items', 'Utilities for controlling how flex and grid items are positioned along a container cross axis.',
+        K('items', 'align-items', 'start:flex-start, end:flex-end, center, baseline, stretch')),
+      I('Align Self', 'align-self', 'Utilities for controlling how an individual flex or grid item is positioned along its container cross axis.',
+        K('self', 'align-self', 'auto, start:flex-start, end:flex-end, center, stretch, baseline')),
+      I('Place Content / Items / Self', 'place-content', 'Shorthands that set justify and align together.',
+        K('place-content', 'place-content', 'center, start, end, between:space-between, around:space-around, evenly:space-evenly, baseline, stretch')
+          .concat(K('place-items', 'place-items', 'start, end, center, baseline, stretch'))
+          .concat(K('place-self', 'place-self', 'auto, start, end, center, stretch')))
+    ] },
+
+    { n: 'Borders', i: [
+      I('Border Radius', 'border-radius', 'Utilities for controlling the border radius of an element. In v4 the scale shifted: rounded-xs is 0.125rem and rounded-sm is 0.25rem. Sides and corners: rounded-t, -r, -b, -l, -tl, -tr, -br, -bl, -s, -e.', `
+rounded-xs | border-radius: var(--radius-xs); | 0.125rem / 2px
+rounded-sm | border-radius: var(--radius-sm); | 0.25rem / 4px
+rounded-md | border-radius: var(--radius-md); | 0.375rem / 6px
+rounded-lg | border-radius: var(--radius-lg); | 0.5rem / 8px
+rounded-xl | border-radius: var(--radius-xl); | 0.75rem / 12px
+rounded-2xl | border-radius: var(--radius-2xl); | 1rem / 16px
+rounded-3xl | border-radius: var(--radius-3xl); | 1.5rem / 24px
+rounded-4xl | border-radius: var(--radius-4xl); | 2rem / 32px
+rounded-none | border-radius: 0;
+rounded-full | border-radius: calc(infinity * 1px); | pills and circles`),
+      I('Border Width', 'border-width', 'Utilities for controlling the width of an element border. Sides: border-x, -y, -t, -r, -b, -l, -s, -e.', `
+border | border-width: 1px;
+border-0 | border-width: 0px;
+border-2 | border-width: 2px;
+border-4 | border-width: 4px;
+border-8 | border-width: 8px;
+border-x | border-inline-width: 1px; | left and right
+border-y | border-block-width: 1px; | top and bottom
+border-t | border-top-width: 1px;
+border-r | border-right-width: 1px;
+border-b | border-bottom-width: 1px;
+border-l | border-left-width: 1px;`),
+      I('Border Color', 'border-color', PALETTE_NOTE, COL('border', 'border-color')),
+      I('Border Style', 'border-style', 'Utilities for controlling the style of an element border.',
+        K('border', 'border-style', 'solid, dashed, dotted, double, hidden, none')),
+      I('Divide Width', 'border-width', 'Utilities for adding borders between child elements.', `
+divide-x | border-inline-width: 1px; | on every child except the first
+divide-y | border-block-width: 1px; | on every child except the first
+divide-x-2 | border-inline-width: 2px;
+divide-y-4 | border-block-width: 4px;
+divide-x-reverse | --tw-divide-x-reverse: 1; | for flex-row-reverse
+divide-y-reverse | --tw-divide-y-reverse: 1; | for flex-col-reverse`),
+      I('Divide Color', 'border-color', PALETTE_NOTE, COL('divide', 'border-color')),
+      I('Divide Style', 'border-style', 'Utilities for controlling the border style between child elements.',
+        K('divide', 'border-style', 'solid, dashed, dotted, double, none')),
+      I('Outline Width', 'outline-width', 'Utilities for controlling the width of an element outline.', `
+outline | outline-width: 1px;
+outline-0 | outline-width: 0px;
+outline-1 | outline-width: 1px;
+outline-2 | outline-width: 2px;
+outline-4 | outline-width: 4px;
+outline-8 | outline-width: 8px;`),
+      I('Outline Style', 'outline-style', 'Utilities for controlling the style of an element outline.', `
+outline-solid | outline-style: solid;
+outline-dashed | outline-style: dashed;
+outline-dotted | outline-style: dotted;
+outline-double | outline-style: double;
+outline-none | outline-style: none;
+outline-hidden | outline: 2px solid transparent; outline-offset: 2px; | hides it, still shows in forced colors mode`),
+      I('Outline Color', 'outline-color', PALETTE_NOTE, COL('outline', 'outline-color')),
+      I('Outline Offset', 'outline-offset', 'Utilities for controlling the offset of an element outline.',
+        NUM('outline-offset', 'outline-offset', [0, 1, 2, 4, 8], function (n) { return n + 'px'; })
+          .concat(L('-outline-offset-2 | outline-offset: calc(2px * -1); | negative offset'))),
+      I('Ring Width', 'box-shadow', 'Utilities for creating outline rings with box shadows. In v4 the bare ring utility is 1px.', `
+ring | box-shadow: 0 0 0 1px <ring color>; | 1px
+ring-0 | box-shadow: 0 0 0 0px <ring color>;
+ring-1 | box-shadow: 0 0 0 1px <ring color>;
+ring-2 | box-shadow: 0 0 0 2px <ring color>;
+ring-4 | box-shadow: 0 0 0 4px <ring color>;
+ring-8 | box-shadow: 0 0 0 8px <ring color>;
+ring-inset | --tw-ring-inset: inset; | draws the ring inside the element`),
+      I('Ring Color', 'box-shadow', PALETTE_NOTE, COL('ring', '--tw-ring-color'))
+    ] },
+
+    { n: 'Sizing', i: [
+      I('Width', 'width', 'Utilities for setting the width of an element.',
+        SP('w', 'width: $;', { auto: true }).concat(FR('w', 'width')).concat(CTR('w', 'width')).concat(L(`
+w-full | width: 100%;
+w-screen | width: 100vw;
+w-svw | width: 100svw;
+w-lvw | width: 100lvw;
+w-dvw | width: 100dvw;
+w-min | width: min-content;
+w-max | width: max-content;
+w-fit | width: fit-content;`))),
+      I('Min-Width', 'min-width', 'Utilities for setting the minimum width of an element.',
+        SP('min-w', 'min-width: $;', { auto: true }).concat(FR('min-w', 'min-width')).concat(CTR('min-w', 'min-width')).concat(L(`
+min-w-full | min-width: 100%;
+min-w-screen | min-width: 100vw;
+min-w-min | min-width: min-content;
+min-w-max | min-width: max-content;
+min-w-fit | min-width: fit-content;`))),
+      I('Max-Width', 'max-width', 'Utilities for setting the maximum width of an element.',
+        L('max-w-none | max-width: none;\nmax-w-full | max-width: 100%;\nmax-w-screen | max-width: 100vw;\nmax-w-min | max-width: min-content;\nmax-w-max | max-width: max-content;\nmax-w-fit | max-width: fit-content;\nmax-w-prose | max-width: 65ch; | about 65 characters')
+          .concat(CTR('max-w', 'max-width'))
+          .concat(L('max-w-screen-sm | max-width: var(--breakpoint-sm); | 40rem\nmax-w-screen-md | max-width: var(--breakpoint-md); | 48rem\nmax-w-screen-lg | max-width: var(--breakpoint-lg); | 64rem\nmax-w-screen-xl | max-width: var(--breakpoint-xl); | 80rem\nmax-w-screen-2xl | max-width: var(--breakpoint-2xl); | 96rem'))
+          .concat(SP('max-w', 'max-width: $;'))),
+      I('Height', 'height', 'Utilities for setting the height of an element.',
+        SP('h', 'height: $;', { auto: true }).concat(FR('h', 'height')).concat(L(`
+h-full | height: 100%;
+h-screen | height: 100vh;
+h-svh | height: 100svh;
+h-lvh | height: 100lvh;
+h-dvh | height: 100dvh;
+h-min | height: min-content;
+h-max | height: max-content;
+h-fit | height: fit-content;
+h-lh | height: 1lh; | one line of text`))),
+      I('Min-Height', 'min-height', 'Utilities for setting the minimum height of an element.',
+        SP('min-h', 'min-height: $;', { auto: true }).concat(L(`
+min-h-full | min-height: 100%;
+min-h-screen | min-height: 100vh;
+min-h-svh | min-height: 100svh;
+min-h-lvh | min-height: 100lvh;
+min-h-dvh | min-height: 100dvh;
+min-h-min | min-height: min-content;
+min-h-max | min-height: max-content;
+min-h-fit | min-height: fit-content;
+min-h-lh | min-height: 1lh;`))),
+      I('Max-Height', 'max-height', 'Utilities for setting the maximum height of an element.',
+        L('max-h-none | max-height: none;\nmax-h-full | max-height: 100%;\nmax-h-screen | max-height: 100vh;\nmax-h-svh | max-height: 100svh;\nmax-h-lvh | max-height: 100lvh;\nmax-h-dvh | max-height: 100dvh;\nmax-h-min | max-height: min-content;\nmax-h-max | max-height: max-content;\nmax-h-fit | max-height: fit-content;')
+          .concat(SP('max-h', 'max-height: $;'))),
+      I('Size', 'size', 'Utilities for setting width and height at the same time.',
+        SP('size', 'width: $; height: $;', { auto: true }).concat(FR('size', 'width')).concat(L(`
+size-full | width: 100%; height: 100%;
+size-min | width: min-content; height: min-content;
+size-max | width: max-content; height: max-content;
+size-fit | width: fit-content; height: fit-content;`)))
+    ] },
+
+    { n: 'Typography', i: [
+      I('Font Family', 'font-family', 'Utilities for controlling the font family of an element.', `
+font-sans | font-family: var(--font-sans); | ui-sans-serif, system-ui, sans-serif
+font-serif | font-family: var(--font-serif); | ui-serif, Georgia, serif
+font-mono | font-family: var(--font-mono); | ui-monospace, SFMono-Regular, monospace
+font-<name> | font-family: var(--font-<name>); | define --font-<name> in @theme`),
+      I('Font Size', 'font-size', 'Utilities for controlling the font size of an element. Add a slash to set the line height at the same time: text-sm/7 is a 0.875rem font on a 1.75rem line.', [
+        ['text-xs', 'font-size: 0.75rem; line-height: calc(1 / 0.75);', '12px'],
+        ['text-sm', 'font-size: 0.875rem; line-height: calc(1.25 / 0.875);', '14px'],
+        ['text-base', 'font-size: 1rem; line-height: calc(1.5 / 1);', '16px'],
+        ['text-lg', 'font-size: 1.125rem; line-height: calc(1.75 / 1.125);', '18px'],
+        ['text-xl', 'font-size: 1.25rem; line-height: calc(1.75 / 1.25);', '20px'],
+        ['text-2xl', 'font-size: 1.5rem; line-height: calc(2 / 1.5);', '24px'],
+        ['text-3xl', 'font-size: 1.875rem; line-height: calc(2.25 / 1.875);', '30px'],
+        ['text-4xl', 'font-size: 2.25rem; line-height: calc(2.5 / 2.25);', '36px'],
+        ['text-5xl', 'font-size: 3rem; line-height: 1;', '48px'],
+        ['text-6xl', 'font-size: 3.75rem; line-height: 1;', '60px'],
+        ['text-7xl', 'font-size: 4.5rem; line-height: 1;', '72px'],
+        ['text-8xl', 'font-size: 6rem; line-height: 1;', '96px'],
+        ['text-9xl', 'font-size: 8rem; line-height: 1;', '128px'],
+        ['text-<size>/<n>', 'line-height: calc(var(--spacing) * <n>);', 'text-sm/7 gives 1.75rem']
+      ]),
+      I('Font Smoothing', 'font-smoothing', 'Utilities for controlling the font smoothing of an element.', `
+antialiased | -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+subpixel-antialiased | -webkit-font-smoothing: auto; -moz-osx-font-smoothing: auto;`),
+      I('Font Style', 'font-style', 'Utilities for controlling the style of text.', `
+italic | font-style: italic;
+not-italic | font-style: normal;`),
+      I('Font Weight', 'font-weight', 'Utilities for controlling the font weight of an element.', `
+font-thin | font-weight: 100;
+font-extralight | font-weight: 200;
+font-light | font-weight: 300;
+font-normal | font-weight: 400;
+font-medium | font-weight: 500;
+font-semibold | font-weight: 600;
+font-bold | font-weight: 700;
+font-extrabold | font-weight: 800;
+font-black | font-weight: 900;`),
+      I('Font Variant Numeric', 'font-variant-numeric', 'Utilities for controlling the variant of numbers.',
+        K('', 'font-variant-numeric', 'normal-nums:normal, ordinal, slashed-zero, lining-nums, oldstyle-nums, proportional-nums, tabular-nums, diagonal-fractions, stacked-fractions').map(function (r) { r[0] = r[0].slice(1); return r; })),
+      I('Letter Spacing', 'letter-spacing', 'Utilities for controlling the tracking of an element.', `
+tracking-tighter | letter-spacing: -0.05em;
+tracking-tight | letter-spacing: -0.025em;
+tracking-normal | letter-spacing: 0em;
+tracking-wide | letter-spacing: 0.025em;
+tracking-wider | letter-spacing: 0.05em;
+tracking-widest | letter-spacing: 0.1em;`),
+      I('Line Clamp', 'line-clamp', 'Utilities for clamping text to a specific number of lines.',
+        NUM('line-clamp', 'overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp', RG(1, 6), function (n) { return n; })
+          .concat(L('line-clamp-none | -webkit-line-clamp: unset;'))),
+      I('Line Height', 'line-height', 'Utilities for controlling the leading, or line height, of an element.', `
+leading-none | line-height: 1;
+leading-tight | line-height: 1.25;
+leading-snug | line-height: 1.375;
+leading-normal | line-height: 1.5;
+leading-relaxed | line-height: 1.625;
+leading-loose | line-height: 2;
+leading-3 | line-height: calc(var(--spacing) * 3); | 0.75rem
+leading-4 | line-height: calc(var(--spacing) * 4); | 1rem
+leading-5 | line-height: calc(var(--spacing) * 5); | 1.25rem
+leading-6 | line-height: calc(var(--spacing) * 6); | 1.5rem
+leading-7 | line-height: calc(var(--spacing) * 7); | 1.75rem
+leading-8 | line-height: calc(var(--spacing) * 8); | 2rem
+leading-9 | line-height: calc(var(--spacing) * 9); | 2.25rem
+leading-10 | line-height: calc(var(--spacing) * 10); | 2.5rem`),
+      I('List Style', 'list-style-type', 'Utilities for controlling the bullet or number style of a list.', `
+list-none | list-style-type: none;
+list-disc | list-style-type: disc;
+list-decimal | list-style-type: decimal;
+list-inside | list-style-position: inside;
+list-outside | list-style-position: outside;`),
+      I('Text Align', 'text-align', 'Utilities for controlling the alignment of text.',
+        K('text', 'text-align', 'left, center, right, justify, start, end')),
+      I('Text Color', 'color', PALETTE_NOTE, COL('text', 'color')),
+      I('Text Decoration', 'text-decoration-line', 'Utilities for controlling the decoration of text, including its color, style and thickness.', `
+underline | text-decoration-line: underline;
+overline | text-decoration-line: overline;
+line-through | text-decoration-line: line-through;
+no-underline | text-decoration-line: none;
+decoration-solid | text-decoration-style: solid;
+decoration-double | text-decoration-style: double;
+decoration-dotted | text-decoration-style: dotted;
+decoration-dashed | text-decoration-style: dashed;
+decoration-wavy | text-decoration-style: wavy;
+decoration-1 | text-decoration-thickness: 1px;
+decoration-2 | text-decoration-thickness: 2px;
+decoration-4 | text-decoration-thickness: 4px;
+decoration-<color>-<shade> | text-decoration-color: var(--color-<color>-<shade>); | e.g. decoration-sky-500
+underline-offset-auto | text-underline-offset: auto;
+underline-offset-4 | text-underline-offset: 4px;`),
+      I('Text Transform', 'text-transform', 'Utilities for controlling the capitalization of text.', `
+uppercase | text-transform: uppercase;
+lowercase | text-transform: lowercase;
+capitalize | text-transform: capitalize;
+normal-case | text-transform: none;`),
+      I('Text Overflow', 'text-overflow', 'Utilities for controlling how the text of an element overflows.', `
+truncate | overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+text-ellipsis | text-overflow: ellipsis;
+text-clip | text-overflow: clip;`),
+      I('Text Wrap', 'text-wrap', 'Utilities for controlling how text wraps within an element.', `
+text-wrap | text-wrap: wrap;
+text-nowrap | text-wrap: nowrap;
+text-balance | text-wrap: balance; | evens out line lengths in headings
+text-pretty | text-wrap: pretty; | avoids a short last line`),
+      I('Whitespace', 'white-space', 'Utilities for controlling an element white-space property.',
+        K('whitespace', 'white-space', 'normal, nowrap, pre, pre-line, pre-wrap, break-spaces')),
+      I('Word Break', 'word-break', 'Utilities for controlling word breaks in an element.', `
+break-normal | overflow-wrap: normal; word-break: normal;
+break-words | overflow-wrap: break-word;
+break-all | word-break: break-all;
+break-keep | word-break: keep-all;`),
+      I('Vertical Align', 'vertical-align', 'Utilities for controlling the vertical alignment of an inline or table-cell box.',
+        K('align', 'vertical-align', 'baseline, top, middle, bottom, text-top, text-bottom, sub, super'))
+    ] },
+
+    { n: 'Backgrounds', i: [
+      I('Background Color', 'background-color', PALETTE_NOTE, COL('bg', 'background-color')),
+      I('Background Image', 'background-image', 'Utilities for controlling an element background image, including gradients.', `
+bg-none | background-image: none;
+bg-linear-to-t | background-image: linear-gradient(to top, var(--tw-gradient-stops));
+bg-linear-to-tr | background-image: linear-gradient(to top right, var(--tw-gradient-stops));
+bg-linear-to-r | background-image: linear-gradient(to right, var(--tw-gradient-stops));
+bg-linear-to-br | background-image: linear-gradient(to bottom right, var(--tw-gradient-stops));
+bg-linear-to-b | background-image: linear-gradient(to bottom, var(--tw-gradient-stops));
+bg-linear-to-bl | background-image: linear-gradient(to bottom left, var(--tw-gradient-stops));
+bg-linear-to-l | background-image: linear-gradient(to left, var(--tw-gradient-stops));
+bg-linear-to-tl | background-image: linear-gradient(to top left, var(--tw-gradient-stops));
+bg-linear-<angle> | background-image: linear-gradient(<angle>deg, var(--tw-gradient-stops)); | bg-linear-45
+bg-radial | background-image: radial-gradient(var(--tw-gradient-stops));
+bg-conic | background-image: conic-gradient(var(--tw-gradient-stops));
+bg-[url(<path>)] | background-image: url(<path>);
+bg-[image:<value>] | background-image: <value>; | any CSS image or gradient`),
+      I('Gradient Color Stops', 'background-image', PALETTE_NOTE, L(`
+from-<color>-<shade> | --tw-gradient-from: var(--color-<color>-<shade>); | start color
+via-<color>-<shade> | --tw-gradient-via: var(--color-<color>-<shade>); | middle color
+to-<color>-<shade> | --tw-gradient-to: var(--color-<color>-<shade>); | end color
+from-10% | --tw-gradient-from-position: 10%;
+via-30% | --tw-gradient-via-position: 30%;
+to-90% | --tw-gradient-to-position: 90%;`)),
+      I('Background Size', 'background-size', 'Utilities for controlling the background size of an element.', `
+bg-auto | background-size: auto;
+bg-cover | background-size: cover;
+bg-contain | background-size: contain;
+bg-size-[<value>] | background-size: <value>; | bg-size-[10px_10px]`),
+      I('Background Position', 'background-position', 'Utilities for controlling the position of an element background image.',
+        K('bg', 'background-position', 'top-left:top left, top, top-right:top right, left, center, right, bottom-left:bottom left, bottom, bottom-right:bottom right')),
+      I('Background Repeat', 'background-repeat', 'Utilities for controlling the repetition of an element background image.', `
+bg-repeat | background-repeat: repeat;
+bg-no-repeat | background-repeat: no-repeat;
+bg-repeat-x | background-repeat: repeat-x;
+bg-repeat-y | background-repeat: repeat-y;
+bg-repeat-round | background-repeat: round;
+bg-repeat-space | background-repeat: space;`),
+      I('Background Attachment', 'background-attachment', 'Utilities for controlling how a background image behaves when scrolling.', `
+bg-fixed | background-attachment: fixed;
+bg-local | background-attachment: local;
+bg-scroll | background-attachment: scroll;`),
+      I('Background Clip', 'background-clip', 'Utilities for controlling the bounding box of an element background.', `
+bg-clip-border | background-clip: border-box;
+bg-clip-padding | background-clip: padding-box;
+bg-clip-content | background-clip: content-box;
+bg-clip-text | background-clip: text; | for gradient text`)
+    ] },
+
+    { n: 'Transitions & Animation', i: [
+      I('Transition Property', 'transition-property', 'Utilities for controlling which CSS properties transition. Each also sets a 150ms duration and the default easing.', `
+transition | transition-property: color, background-color, border-color, opacity, box-shadow, transform, translate, scale, rotate, filter, backdrop-filter, and a few more;
+transition-all | transition-property: all;
+transition-colors | transition-property: color, background-color, border-color, outline-color, text-decoration-color, fill, stroke;
+transition-opacity | transition-property: opacity;
+transition-shadow | transition-property: box-shadow;
+transition-transform | transition-property: transform, translate, scale, rotate;
+transition-none | transition-property: none;`),
+      I('Transition Duration', 'transition-duration', 'Utilities for controlling the duration of CSS transitions.',
+        NUM('duration', 'transition-duration', [75, 100, 150, 200, 300, 500, 700, 1000], function (n) { return n + 'ms'; })),
+      I('Transition Timing Function', 'transition-timing-function', 'Utilities for controlling the easing of CSS transitions.', `
+ease-linear | transition-timing-function: linear;
+ease-in | transition-timing-function: cubic-bezier(0.4, 0, 1, 1);
+ease-out | transition-timing-function: cubic-bezier(0, 0, 0.2, 1);
+ease-in-out | transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);`),
+      I('Transition Delay', 'transition-delay', 'Utilities for controlling the delay of CSS transitions.',
+        NUM('delay', 'transition-delay', [75, 100, 150, 200, 300, 500, 700, 1000], function (n) { return n + 'ms'; })),
+      I('Animation', 'animation', 'Utilities for animating elements with CSS animations.', `
+animate-spin | animation: spin 1s linear infinite;
+animate-ping | animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+animate-pulse | animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+animate-bounce | animation: bounce 1s infinite;
+animate-none | animation: none;`)
+    ] },
+
+    { n: 'Transforms', i: [
+      I('Scale', 'scale', 'Utilities for scaling elements. Axes: scale-x, scale-y.',
+        NUM('scale', 'scale', [0, 50, 75, 90, 95, 100, 105, 110, 125, 150], function (n) { return n + '%'; })
+          .concat(L('scale-x-110 | scale: 110% var(--tw-scale-y); | width only\nscale-y-110 | scale: var(--tw-scale-x) 110%; | height only\n-scale-x-100 | scale: -100% var(--tw-scale-y); | flips horizontally'))),
+      I('Rotate', 'rotate', 'Utilities for rotating elements.',
+        NUM('rotate', 'rotate', [0, 1, 2, 3, 6, 12, 45, 90, 180], function (n) { return n + 'deg'; })
+          .concat(L('-rotate-45 | rotate: calc(45deg * -1); | counter-clockwise'))),
+      I('Translate', 'translate', 'Utilities for translating elements. Axes: translate-x, translate-y.', `
+translate-x-4 | --tw-translate-x: calc(var(--spacing) * 4); | moves 1rem right
+translate-y-4 | --tw-translate-y: calc(var(--spacing) * 4); | moves 1rem down
+translate-x-1/2 | --tw-translate-x: calc(1 / 2 * 100%); | half its own width
+-translate-x-1/2 | --tw-translate-x: calc(1 / 2 * -100%); | the centering trick with left-1/2
+translate-x-full | --tw-translate-x: 100%;
+translate-x-px | --tw-translate-x: 1px;`),
+      I('Skew', 'skew', 'Utilities for skewing elements with transform. Axes: skew-x, skew-y.',
+        NUM('skew-x', 'transform', [0, 1, 2, 3, 6, 12], function (n) { return 'skewX(' + n + 'deg)'; })),
+      I('Transform Origin', 'transform-origin', 'Utilities for specifying the origin for an element transformations.',
+        K('origin', 'transform-origin', 'center, top, top-right:top right, right, bottom-right:bottom right, bottom, bottom-left:bottom left, left, top-left:top left'))
+    ] },
+
+    { n: 'Interactivity', i: [
+      I('Accent Color', 'accent-color', PALETTE_NOTE, L('accent-auto | accent-color: auto;\naccent-<color>-<shade> | accent-color: var(--color-<color>-<shade>); | checkboxes, radios, ranges')),
+      I('Appearance', 'appearance', 'Utilities for suppressing native form control styling.', `
+appearance-none | appearance: none;
+appearance-auto | appearance: auto;`),
+      I('Cursor', 'cursor', 'Utilities for controlling the cursor style when hovering over an element.',
+        K('cursor', 'cursor', 'auto, default, pointer, wait, text, move, help, not-allowed, none, progress, cell, crosshair, copy, grab, grabbing, zoom-in, zoom-out, col-resize, row-resize')),
+      I('Caret Color', 'caret-color', PALETTE_NOTE, L('caret-<color>-<shade> | caret-color: var(--color-<color>-<shade>); | the text cursor in inputs')),
+      I('Pointer Events', 'pointer-events', 'Utilities for controlling whether an element responds to pointer events.', `
+pointer-events-auto | pointer-events: auto;
+pointer-events-none | pointer-events: none;`),
+      I('Resize', 'resize', 'Utilities for controlling how an element can be resized.', `
+resize-none | resize: none;
+resize-y | resize: vertical;
+resize-x | resize: horizontal;
+resize | resize: both;`),
+      I('Scroll Behavior', 'scroll-behavior', 'Utilities for controlling the scroll behavior of an element.', `
+scroll-auto | scroll-behavior: auto;
+scroll-smooth | scroll-behavior: smooth;`),
+      I('Scroll Snap', 'scroll-snap-type', 'Utilities for controlling snap points in scroll containers and their children.', `
+snap-none | scroll-snap-type: none;
+snap-x | scroll-snap-type: x var(--tw-scroll-snap-strictness);
+snap-y | scroll-snap-type: y var(--tw-scroll-snap-strictness);
+snap-both | scroll-snap-type: both var(--tw-scroll-snap-strictness);
+snap-mandatory | --tw-scroll-snap-strictness: mandatory;
+snap-proximity | --tw-scroll-snap-strictness: proximity;
+snap-start | scroll-snap-align: start;
+snap-center | scroll-snap-align: center;
+snap-end | scroll-snap-align: end;`),
+      I('Touch Action', 'touch-action', 'Utilities for controlling how an element can be scrolled and zoomed on touchscreens.', `
+touch-auto | touch-action: auto;
+touch-none | touch-action: none;
+touch-pan-x | touch-action: pan-x;
+touch-pan-y | touch-action: pan-y;
+touch-manipulation | touch-action: manipulation;`),
+      I('User Select', 'user-select', 'Utilities for controlling whether the user can select text.',
+        K('select', 'user-select', 'none, text, all, auto')),
+      I('Will Change', 'will-change', 'Utilities for optimizing upcoming animations of elements that are expected to change.',
+        K('will-change', 'will-change', 'auto, scroll:scroll-position, contents, transform'))
+    ] },
+
+    { n: 'SVG', i: [
+      I('Fill', 'fill', PALETTE_NOTE, L('fill-none | fill: none;\nfill-inherit | fill: inherit;\nfill-current | fill: currentColor;\nfill-transparent | fill: transparent;\nfill-black | fill: var(--color-black);\nfill-white | fill: var(--color-white);\nfill-<color>-<shade> | fill: var(--color-<color>-<shade>); | e.g. fill-sky-500')),
+      I('Stroke', 'stroke', PALETTE_NOTE, L('stroke-none | stroke: none;\nstroke-inherit | stroke: inherit;\nstroke-current | stroke: currentColor;\nstroke-transparent | stroke: transparent;\nstroke-black | stroke: var(--color-black);\nstroke-white | stroke: var(--color-white);\nstroke-<color>-<shade> | stroke: var(--color-<color>-<shade>); | e.g. stroke-sky-500')),
+      I('Stroke Width', 'stroke-width', 'Utilities for styling the stroke width of SVG elements.', `
+stroke-0 | stroke-width: 0;
+stroke-1 | stroke-width: 1;
+stroke-2 | stroke-width: 2;`)
+    ] },
+
+    { n: 'Tables', i: [
+      I('Border Collapse', 'border-collapse', 'Utilities for controlling whether table borders should collapse or be separated.', `
+border-collapse | border-collapse: collapse;
+border-separate | border-collapse: separate;`),
+      I('Border Spacing', 'border-spacing', 'Utilities for controlling the spacing between table borders. Axes: border-spacing-x, border-spacing-y.',
+        NUM('border-spacing', 'border-spacing', [0, 1, 2, 3, 4, 6, 8], function (n) { return 'calc(var(--spacing) * ' + n + ')'; }, function (n) { return (n * 0.25) + 'rem / ' + (n * 4) + 'px'; })),
+      I('Table Layout', 'table-layout', 'Utilities for controlling the table layout algorithm.', `
+table-auto | table-layout: auto;
+table-fixed | table-layout: fixed;`),
+      I('Caption Side', 'caption-side', 'Utilities for controlling the alignment of a caption element inside of a table.', `
+caption-top | caption-side: top;
+caption-bottom | caption-side: bottom;`)
+    ] },
+
+    { n: 'Effects', i: [
+      I('Box Shadow', 'box-shadow', 'Utilities for controlling the box shadow of an element.', `
+shadow-2xs | box-shadow: 0 1px rgb(0 0 0 / 0.05);
+shadow-xs | box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+shadow-sm | box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+shadow-md | box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+shadow-lg | box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+shadow-xl | box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+shadow-2xl | box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+shadow-none | box-shadow: 0 0 #0000;
+shadow-<color>-<shade> | --tw-shadow-color: var(--color-<color>-<shade>); | tints the shadow
+inset-shadow-2xs | box-shadow: inset 0 1px rgb(0 0 0 / 0.05);
+inset-shadow-xs | box-shadow: inset 0 1px 1px rgb(0 0 0 / 0.05);
+inset-shadow-sm | box-shadow: inset 0 2px 4px rgb(0 0 0 / 0.05);`),
+      I('Text Shadow', 'text-shadow', 'Utilities for controlling the shadow of text. Available from Tailwind 4.1.', `
+text-shadow-2xs | text-shadow: 0px 1px 0px rgb(0 0 0 / 0.15);
+text-shadow-xs | text-shadow: 0px 1px 1px rgb(0 0 0 / 0.2);
+text-shadow-none | text-shadow: none;`),
+      I('Opacity', 'opacity', 'Utilities for controlling the opacity of an element.',
+        NUM('opacity', 'opacity', [0, 5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 95, 100], function (n) { return n + '%'; })),
+      I('Mix Blend Mode', 'mix-blend-mode', 'Utilities for controlling how an element should blend with the background.',
+        K('mix-blend', 'mix-blend-mode', 'normal, multiply, screen, overlay, darken, lighten, color-dodge, color-burn, hard-light, soft-light, difference, exclusion, hue, saturation, color, luminosity'))
+    ] },
+
+    { n: 'Filters', i: [
+      I('Blur', 'filter-blur', 'Utilities for applying blur filters to an element.', `
+blur-none | --tw-blur: ; | removes the blur
+blur-xs | filter: blur(4px);
+blur-sm | filter: blur(8px);
+blur-md | filter: blur(12px);
+blur-lg | filter: blur(16px);
+blur-xl | filter: blur(24px);
+blur-2xl | filter: blur(40px);
+blur-3xl | filter: blur(64px);`),
+      I('Brightness', 'filter-brightness', 'Utilities for applying brightness filters to an element.',
+        NUM('brightness', 'filter', [0, 50, 75, 90, 95, 100, 105, 110, 125, 150, 200], function (n) { return 'brightness(' + n + '%)'; })),
+      I('Contrast', 'filter-contrast', 'Utilities for applying contrast filters to an element.',
+        NUM('contrast', 'filter', [0, 50, 75, 100, 125, 150, 200], function (n) { return 'contrast(' + n + '%)'; })),
+      I('Drop Shadow', 'filter-drop-shadow', 'Utilities for applying drop-shadow filters to an element.', `
+drop-shadow-xs | filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.05));
+drop-shadow-sm | filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.15));
+drop-shadow-md | filter: drop-shadow(0 3px 3px rgb(0 0 0 / 0.12));
+drop-shadow-lg | filter: drop-shadow(0 4px 4px rgb(0 0 0 / 0.15));
+drop-shadow-xl | filter: drop-shadow(0 9px 7px rgb(0 0 0 / 0.1));
+drop-shadow-2xl | filter: drop-shadow(0 25px 25px rgb(0 0 0 / 0.15));
+drop-shadow-none | filter: drop-shadow(0 0 #0000);`),
+      I('Grayscale', 'filter-grayscale', 'Utilities for applying grayscale filters to an element.', `
+grayscale | filter: grayscale(100%);
+grayscale-0 | filter: grayscale(0%);
+grayscale-50 | filter: grayscale(50%);`),
+      I('Hue Rotate', 'filter-hue-rotate', 'Utilities for applying hue-rotate filters to an element.',
+        NUM('hue-rotate', 'filter', [0, 15, 30, 60, 90, 180], function (n) { return 'hue-rotate(' + n + 'deg)'; })),
+      I('Invert', 'filter-invert', 'Utilities for applying invert filters to an element.', `
+invert | filter: invert(100%);
+invert-0 | filter: invert(0%);
+invert-50 | filter: invert(50%);`),
+      I('Saturate', 'filter-saturate', 'Utilities for applying saturation filters to an element.',
+        NUM('saturate', 'filter', [0, 50, 100, 150, 200], function (n) { return 'saturate(' + n + '%)'; })),
+      I('Sepia', 'filter-sepia', 'Utilities for applying sepia filters to an element.', `
+sepia | filter: sepia(100%);
+sepia-0 | filter: sepia(0%);
+sepia-50 | filter: sepia(50%);`),
+      I('Backdrop Blur', 'backdrop-filter-blur', 'Utilities for applying backdrop blur filters to an element, which blur what is behind it.', `
+backdrop-blur-none | --tw-backdrop-blur: ; | removes the blur
+backdrop-blur-xs | backdrop-filter: blur(4px);
+backdrop-blur-sm | backdrop-filter: blur(8px);
+backdrop-blur-md | backdrop-filter: blur(12px);
+backdrop-blur-lg | backdrop-filter: blur(16px);
+backdrop-blur-xl | backdrop-filter: blur(24px);
+backdrop-blur-2xl | backdrop-filter: blur(40px);
+backdrop-blur-3xl | backdrop-filter: blur(64px);`)
+    ] },
+
+    { n: 'Accessibility', i: [
+      I('Screen Readers', 'screen-readers', 'Utilities for improving accessibility with screen readers.', `
+sr-only | position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0; | hidden visually, read aloud
+not-sr-only | position: static; width: auto; height: auto; padding: 0; margin: 0; overflow: visible; clip: auto; white-space: normal; | undoes sr-only`),
+      I('Forced Color Adjust', 'forced-color-adjust', 'Utilities for opting in and out of forced colors.', `
+forced-color-adjust-auto | forced-color-adjust: auto;
+forced-color-adjust-none | forced-color-adjust: none;`),
+      I('Accessibility Variants', 'hover-focus-and-other-states', 'Variants that respond to user and system preferences.', `
+focus-visible: | &:focus-visible | focus from the keyboard
+motion-safe: | @media (prefers-reduced-motion: no-preference) |
+motion-reduce: | @media (prefers-reduced-motion: reduce) |
+contrast-more: | @media (prefers-contrast: more) |
+forced-colors: | @media (forced-colors: active) |`)
+    ] }
+  ];
+
+  var idxRoot = $('#idxList'), idxQ = $('#idxQ'), idxEmpty = $('#idxEmpty');
+  var idxCats = [];
+  var groups = {};
+
+  function rowsHTML(rows, ci, ii) {
+    return rows.map(function (r) {
+      var c = r[0];
+      var clickable = c.indexOf('<') === -1 && c.slice(-1) !== ':';
+      var prop = r[1].indexOf(':') > -1 ? r[1].split(':')[0].trim() : r[1];
+      var g = ci + '|' + ii + '|' + prop;
+      if (clickable) { (groups[g] = groups[g] || []).push(c); }
+      var attrs = clickable ? ' class="pickable" data-c="' + esc(c).replace(/"/g, '&quot;') + '" data-g="' + esc(g).replace(/"/g, '&quot;') + '"' : '';
+      var kcell = clickable ? '<button type="button" class="pick">' + esc(c) + '</button>' : esc(c);
+      return '<tr data-q="' + esc((r[0] + ' ' + r[1]).toLowerCase()).replace(/"/g, '&quot;') + '"' + attrs + '><td class="k">' + kcell + '</td><td class="v">' + esc(r[1]) + '</td><td class="n">' + esc(r[2]) + '</td></tr>';
+    }).join('');
+  }
+
+  function buildIndex() {
+    var byName = function (a, b) { return a.n.localeCompare(b.n, undefined, { sensitivity: 'base' }); };
+    DATA.sort(byName);
+    DATA.forEach(function (c) { c.i.sort(byName); });
+    var frag = document.createDocumentFragment();
+    DATA.forEach(function (cat, ci) {
+      var sec = document.createElement('section');
+      sec.className = 'cat';
+      var cid = 'cat-' + ci;
+      sec.innerHTML = '<h3 class="cat-h"><button type="button" class="cat-head" aria-expanded="false" aria-controls="' + cid + '"><span>' + esc(cat.n) + '</span>' + CHEV + '</button></h3><div class="cat-body" id="' + cid + '" hidden></div>';
+      var body = sec.querySelector('.cat-body');
+      var items = [];
+      cat.i.forEach(function (it, ii) {
+        var d = document.createElement('div');
+        d.className = 'itm';
+        var bid = 'itm-' + ci + '-' + ii;
+        d.innerHTML = '<div class="itm-row"><button type="button" class="itm-name" aria-expanded="false" aria-controls="' + bid + '">' + esc(it.n) + '</button>' +
+          '<a class="docs" href="https://tailwindcss.com/docs/' + it.s + '" target="_blank" rel="noopener" aria-label="' + esc(it.n) + ' documentation" title="Docs"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/></svg></a></div>' +
+          '<div class="itm-body" id="' + bid + '" hidden><p class="itm-desc">' + esc(it.d) + '</p><div class="tbl"><table><tbody>' + rowsHTML(it.r, ci, ii) + '</tbody></table></div></div>';
+        body.appendChild(d);
+        items.push({ el: d, name: it.n.toLowerCase(), rows: Array.prototype.slice.call(d.querySelectorAll('tr')) });
+      });
+      idxCats.push({ el: sec, head: sec.querySelector('.cat-head'), body: body, items: items });
+      frag.appendChild(sec);
+    });
+    idxRoot.appendChild(frag);
+  }
+
+  function setOpen(btn, panel, open) {
+    btn.setAttribute('aria-expanded', String(open));
+    panel.hidden = !open;
+  }
+  function itemParts(it) { return { btn: it.el.querySelector('.itm-name'), body: it.el.querySelector('.itm-body') }; }
+
+  idxRoot.addEventListener('click', function (e) {
+    var ch = e.target.closest('.cat-head');
+    if (ch) {
+      var opening = ch.getAttribute('aria-expanded') !== 'true';
+      setOpen(ch, document.getElementById(ch.getAttribute('aria-controls')), opening);
+      if (opening) idxCats.forEach(function (c) {
+        if (c.head !== ch) return;
+        c.items.forEach(function (it) { if (!it.el.hidden) { var p = itemParts(it); setOpen(p.btn, p.body, true); } });
+      });
+      return;
+    }
+    var nm = e.target.closest('.itm-name');
+    if (nm) setOpen(nm, document.getElementById(nm.getAttribute('aria-controls')), nm.getAttribute('aria-expanded') !== 'true');
+  });
+
+  function setAll(open) {
+    idxCats.forEach(function (c) {
+      if (c.el.hidden) return;
+      setOpen(c.head, c.body, open);
+      c.items.forEach(function (it) { if (!it.el.hidden) { var p = itemParts(it); setOpen(p.btn, p.body, open); } });
+    });
+  }
+  $('#idxExpand').addEventListener('click', function () { setAll(true); });
+  $('#idxCollapse').addEventListener('click', function () { setAll(false); });
+
+  idxQ.addEventListener('input', function () {
+    var q = idxQ.value.trim().toLowerCase();
+    var any = false;
+    idxCats.forEach(function (c) {
+      var catHit = false;
+      c.items.forEach(function (it) {
+        var p = itemParts(it);
+        if (!q) {
+          it.el.hidden = false;
+          it.rows.forEach(function (r) { r.hidden = false; });
+          setOpen(p.btn, p.body, false);
+          return;
+        }
+        var nameHit = it.name.indexOf(q) !== -1;
+        var rowHit = false;
+        it.rows.forEach(function (r) {
+          var hit = r.dataset.q.indexOf(q) !== -1;
+          if (hit) rowHit = true;
+          r.hidden = !(nameHit || hit);
+        });
+        var show = nameHit || rowHit;
+        it.el.hidden = !show;
+        setOpen(p.btn, p.body, show);
+        if (show) catHit = true;
+      });
+      if (!q) { c.el.hidden = false; setOpen(c.head, c.body, false); any = true; return; }
+      c.el.hidden = !catHit;
+      setOpen(c.head, c.body, catHit);
+      if (catHit) any = true;
+    });
+    idxEmpty.hidden = any;
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if ((e.ctrlKey || e.metaKey) && e.key && e.key.toLowerCase() === 'k') {
+      e.preventDefault();
+      idxQ.focus();
+      idxQ.select();
+    }
+  });
+
+  buildIndex();
+
+  /* ---------- element tree ---------- */
+  var collapsed = {};
+
+  function ownText(el) {
+    var t = '';
+    Array.prototype.forEach.call(el.childNodes, function (n) { if (n.nodeType === 3) t += ' ' + n.textContent; });
+    t = t.replace(/\s+/g, ' ').trim();
+    return t.length > 40 ? t.slice(0, 40) + '...' : t;
+  }
+  function getTree() {
+    var doc = new DOMParser().parseFromString('<!doctype html><html><body>' + instrument(st.html) + '</body></html>', 'text/html');
+    var map = {}, list = [], roots = [];
+    function walk(el, parent, depth) {
+      Array.prototype.forEach.call(el.children, function (ch) {
+        var wi = ch.getAttribute('data-wi');
+        if (wi === null) { walk(ch, parent, depth); return; }
+        var id = Number(wi);
+        var node = { id: id, tag: ch.tagName.toLowerCase(), parent: parent, depth: depth, kids: [], cls: (ch.getAttribute('class') || '').trim(), text: ownText(ch) };
+        map[id] = node;
+        list.push(node);
+        if (parent >= 0) map[parent].kids.push(id); else roots.push(id);
+        walk(ch, id, depth + 1);
+      });
+    }
+    walk(doc.body, -1, 0);
+    return { map: map, list: list, roots: roots };
+  }
+  function revealSel(id) {
+    var n = getTree().map[id];
+    var T = getTree();
+    while (n && n.parent >= 0) { delete collapsed[n.parent]; n = T.map[n.parent]; }
+  }
+  function renderTree() {
+    if ($('#tree').hidden) return;
+    var T = getTree(), html = '';
+    $('#treeEmpty').hidden = T.list.length > 0;
+    function emit(id) {
+      var n = T.map[id], has = n.kids.length > 0, open = !collapsed[id], on = id === sel.id;
+      html += '<div class="trow' + (on ? ' sel' : '') + '" role="treeitem" aria-level="' + (n.depth + 1) + '"' + (has ? ' aria-expanded="' + open + '"' : '') + ' aria-selected="' + on + '" data-id="' + id + '" style="--d:' + n.depth + '">' +
+        (has ? '<button type="button" class="twist' + (open ? '' : ' shut') + '" data-twist="' + id + '" aria-label="' + (open ? 'Collapse' : 'Expand') + '">' + CHEV + '</button>' : '<span class="twist-pad"></span>') +
+        '<button type="button" class="tnode" data-node="' + id + '"><span class="ttag">&lt;' + esc(n.tag) + '&gt;</span>' +
+        (n.cls ? '<span class="tcls">' + esc(n.cls) + '</span>' : '') +
+        (n.text ? '<span class="ttext">' + esc(n.text) + '</span>' : '') + '</button></div>';
+      if (has && open) n.kids.forEach(emit);
+    }
+    T.roots.forEach(emit);
+    $('#treeBody').innerHTML = html;
+    var cur = $('#treeBody').querySelector('.trow.sel');
+    if (cur && cur.scrollIntoView) cur.scrollIntoView({ block: 'nearest' });
+  }
+  function selectId(id) {
+    var n = getTree().map[id];
+    if (!n) return;
+    sel.id = id;
+    sel.tag = n.tag;
+    try { frame.contentWindow.postMessage({ tw: 'mark', id: id }, '*'); } catch (e) {}
+    say('Selected <' + n.tag + '>.');
+    renderSel();
+    refreshMarks();
+  }
+  function navigate(k) {
+    var T = getTree(), n = T.map[sel.id];
+    if (!n) return;
+    var target = -1, what = '';
+    if (k === 'ArrowUp') { target = n.parent; what = 'parent'; }
+    else if (k === 'ArrowDown') { target = n.kids.length ? n.kids[0] : -1; what = 'child'; }
+    else {
+      var sibs = n.parent >= 0 ? T.map[n.parent].kids : T.roots;
+      var i = sibs.indexOf(n.id);
+      var t = k === 'ArrowLeft' ? sibs[i - 1] : sibs[i + 1];
+      target = t === undefined ? -1 : t;
+      what = k === 'ArrowLeft' ? 'previous sibling' : 'next sibling';
+    }
+    if (target < 0) { say('<' + n.tag + '> has no ' + what + '.'); return; }
+    revealSel(target);
+    selectId(target);
+  }
+  $('#treeBody').addEventListener('click', function (e) {
+    var tw = e.target.closest('[data-twist]');
+    if (tw) {
+      var tid = Number(tw.dataset.twist);
+      if (collapsed[tid]) delete collapsed[tid]; else collapsed[tid] = true;
+      renderTree();
+      return;
+    }
+    var nd = e.target.closest('[data-node]');
+    if (nd) selectId(Number(nd.dataset.node));
+  });
+  $('#treeExpand').addEventListener('click', function () { collapsed = {}; renderTree(); });
+  $('#treeCollapse').addEventListener('click', function () {
+    collapsed = {};
+    getTree().list.forEach(function (n) { if (n.kids.length) collapsed[n.id] = true; });
+    renderTree();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+    var k = e.key;
+    if (k !== 'ArrowUp' && k !== 'ArrowDown' && k !== 'ArrowLeft' && k !== 'ArrowRight') return;
+    var t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
+    if (sel.id < 0) return;
+    e.preventDefault();
+    navigate(k);
+  });
+
+  /* ---------- selection and class editing ---------- */
+  var sel = { id: -1, tag: '' };
+  var selMode = true;
+
+  function startTags(src) {
+    var out = [], i = 0, n = src.length;
+    while (i < n) {
+      var lt = src.indexOf('<', i);
+      if (lt < 0) break;
+      if (src.substr(lt, 4) === '<!--') { var ce = src.indexOf('-->', lt + 4); i = ce < 0 ? n : ce + 3; continue; }
+      var c = src.charAt(lt + 1);
+      if (c === '/' || c === '!' || c === '?') { var gt = src.indexOf('>', lt); i = gt < 0 ? n : gt + 1; continue; }
+      if (!/[A-Za-z]/.test(c)) { i = lt + 1; continue; }
+      var m = /^<([A-Za-z][^\s\/>]*)/.exec(src.slice(lt, lt + 80));
+      var name = m[1].toLowerCase();
+      var nameEnd = lt + 1 + m[1].length;
+      var j = nameEnd, q = null;
+      while (j < n) {
+        var ch = src.charAt(j);
+        if (q) { if (ch === q) q = null; }
+        else if (ch === '"' || ch === "'") q = ch;
+        else if (ch === '>') break;
+        j++;
+      }
+      var end = Math.min(j + 1, n);
+      out.push({ start: lt, nameEnd: nameEnd, end: end, name: name });
+      i = end;
+      if (name === 'script' || name === 'style' || name === 'textarea' || name === 'title') {
+        var close = src.toLowerCase().indexOf('</' + name, end);
+        i = close < 0 ? n : close;
+      }
+    }
+    return out;
+  }
+  function instrument(src) {
+    var out = '', last = 0;
+    startTags(src).forEach(function (t, k) {
+      out += src.slice(last, t.nameEnd) + ' data-wi="' + k + '"';
+      last = t.nameEnd;
+    });
+    return out + src.slice(last);
+  }
+  var CLASS_RE = /(\sclass\s*=\s*)("[^"]*"|'[^']*'|[^\s"'>]+)/i;
+  function classOf(id) {
+    var t = startTags(st.html)[id];
+    if (!t) return null;
+    var m = CLASS_RE.exec(st.html.slice(t.start, t.end));
+    if (!m) return [];
+    var q = m[2].charAt(0);
+    var v = (q === '"' || q === "'") ? m[2].slice(1, -1) : m[2];
+    return v.split(/\s+/).filter(Boolean);
+  }
+  function editClassAttr(id, cls) {
+    var t = startTags(st.html)[id];
+    if (!t) return false;
+    var tag = st.html.slice(t.start, t.end);
+    var m = CLASS_RE.exec(tag), nt;
+    if (m) {
+      nt = cls
+        ? tag.slice(0, m.index) + m[1] + '"' + cls + '"' + tag.slice(m.index + m[0].length)
+        : tag.slice(0, m.index) + tag.slice(m.index + m[0].length);
+    } else if (cls) {
+      var at = t.nameEnd - t.start;
+      nt = tag.slice(0, at) + ' class="' + cls + '"' + tag.slice(at);
+    } else return true;
+    st.html = st.html.slice(0, t.start) + nt + st.html.slice(t.end);
+    return true;
+  }
+
+  function normVar() {
+    var v = $('#selVar').value.trim();
+    if (v && v.slice(-1) !== ':') v += ':';
+    return v;
+  }
+  function say(msg) { $('#selMsg').textContent = msg; }
+  function copyText(t, done) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(t).then(function () { done(true); }, function () { done(false); });
+    } else done(false);
+  }
+
+  function renderSel() {
+    var has = sel.id >= 0;
+    var toks = has ? (classOf(sel.id) || []) : [];
+    $('#selTag').textContent = has ? '<' + sel.tag + '>' : 'none';
+    $('#selChips').innerHTML = toks.map(function (t) {
+      return '<button type="button" class="chip" data-t="' + esc(t).replace(/"/g, '&quot;') + '" title="Click to remove">' + esc(t) + '</button>';
+    }).join('');
+    $('#selCopy').disabled = !has;
+    $('#selClear').disabled = !has;
+    renderTree();
+    updateBand();
+  }
+  function refreshMarks() {
+    var v = normVar(), set = {};
+    (sel.id >= 0 ? (classOf(sel.id) || []) : []).forEach(function (t) { set[t] = 1; });
+    idxCats.forEach(function (c) {
+      var catHas = false;
+      c.items.forEach(function (it) {
+        var has = false;
+        it.rows.forEach(function (r) {
+          var cl = r.dataset.c;
+          var on = !!cl && !!set[v + cl];
+          if (r.classList.contains('on') !== on) r.classList.toggle('on', on);
+          if (on) has = true;
+        });
+        it.el.classList.toggle('has-sel', has);
+        if (has) catHas = true;
+      });
+      c.head.classList.toggle('has-sel', catHas);
+    });
+  }
+  function setSel(id, tag) {
+    if (id !== sel.id) clearChg();
+    if (id < 0 || classOf(id) === null) { sel.id = -1; sel.tag = ''; }
+    else { sel.id = id; sel.tag = tag; say('Selected <' + tag + '>. Click a class below to add or swap it, or use the arrow keys to move through the tree.'); }
+    renderSel();
+    if (!noReveal) revealInEditor();
+    refreshMarks();
+  }
+  function markChange(id, before, after) {
+    var added = after.filter(function (t) { return before.indexOf(t) < 0; });
+    if (!added.length) return null;
+    var t = startTags(st.html)[id];
+    if (!t) return null;
+    var m = CLASS_RE.exec(st.html.slice(t.start, t.end));
+    if (!m) return null;
+    var q = m[2].charAt(0), quoted = (q === '"' || q === "'");
+    var off = t.start + m.index + m[1].length + (quoted ? 1 : 0);
+    var val = quoted ? m[2].slice(1, -1) : m[2], ranges = [], re = /\S+/g, x;
+    while ((x = re.exec(val))) if (added.indexOf(x[0]) > -1) ranges.push({ s: off + x.index, e: off + x.index + x[0].length });
+    return ranges.length ? { id: id, toks: added, ranges: ranges } : null;
+  }
+  function applyClasses(toks) {
+    if (sel.id < 0) return;
+    var before = classOf(sel.id) || [];
+    var cls = toks.join(' ');
+    if (!editClassAttr(sel.id, cls)) { say('That element is no longer in the HTML.'); return; }
+    chg = markChange(sel.id, before, toks);
+    save();
+    if (st.tab === 'html') { ta.value = st.html; refreshEditor(); revealChg(); }
+    try { frame.contentWindow.postMessage({ tw: 'setclass', id: sel.id, cls: cls }, '*'); } catch (e) {}
+    renderSel();
+    refreshMarks();
+  }
+  function pickClass(c, g) {
+    if (sel.id < 0) {
+      copyText(c, function (ok) { say(ok ? 'Copied ' + c + '. Select an element in the preview to add it.' : 'Select an element in the preview first. Copying is blocked here.'); });
+      return;
+    }
+    var toks = classOf(sel.id);
+    if (!toks) { say('That element is no longer in the HTML.'); return; }
+    var v = normVar(), full = v + c, out;
+    if (toks.indexOf(full) > -1) {
+      out = toks.filter(function (t) { return t !== full; });
+      say('Removed ' + full);
+    } else {
+      var gs = {};
+      (groups[g] || [c]).forEach(function (x) { gs[v + x] = 1; });
+      var pos = -1;
+      out = [];
+      toks.forEach(function (t) {
+        if (gs[t]) { if (pos < 0) pos = out.length; }
+        else out.push(t);
+      });
+      if (pos < 0) { out.push(full); say('Added ' + full); }
+      else { out.splice(pos, 0, full); say('Swapped in ' + full); }
+    }
+    applyClasses(out);
+  }
+
+  idxRoot.addEventListener('click', function (e) {
+    var row = e.target.closest('tr.pickable');
+    if (row) pickClass(row.dataset.c, row.dataset.g);
+  });
+  $('#selChips').addEventListener('click', function (e) {
+    var b = e.target.closest('.chip');
+    if (!b || sel.id < 0) return;
+    var t = b.dataset.t;
+    applyClasses((classOf(sel.id) || []).filter(function (x) { return x !== t; }));
+    say('Removed ' + t);
+  });
+  $('#selVar').addEventListener('input', refreshMarks);
+  $('#selCopy').addEventListener('click', function () {
+    var toks = classOf(sel.id) || [];
+    copyText(toks.join(' '), function (ok) { say(ok ? 'Copied the class list.' : 'Copying is blocked here.'); });
+  });
+  $('#selClear').addEventListener('click', function () {
+    sel.id = -1; sel.tag = ''; clearChg();
+    try { frame.contentWindow.postMessage({ tw: 'unselect' }, '*'); } catch (e) {}
+    renderSel();
+    refreshMarks();
+    say('Nothing selected.');
+  });
+
+  /* ---------- menu helpers ---------- */
+  var CHECK_SVG = '<path d="M5 12.5l4.5 4.5L19 7.5"/>';
+  function flash(btn, ms) {
+    var svg = btn.querySelector('svg');
+    if (!svg) return;
+    if (btn._orig === undefined) btn._orig = svg.innerHTML;
+    svg.innerHTML = CHECK_SVG; btn.classList.add('done');
+    clearTimeout(btn._t);
+    btn._t = setTimeout(function () { unflash(btn); }, ms || 1600);
+  }
+  function unflash(btn) {
+    var svg = btn.querySelector('svg');
+    clearTimeout(btn._t);
+    if (svg && btn._orig !== undefined) svg.innerHTML = btn._orig;
+    btn.classList.remove('done');
+  }
+  function outShow(label, text, btn) {
+    var box = $('#outBox'), msg = $('#outMsg');
+    copyText(text, function (ok) {
+      if (ok) { flash(btn); box.hidden = true; msg.hidden = true; return; }
+      box.hidden = false; box.value = text; msg.hidden = false;
+      msg.textContent = 'Copying is blocked here. Select the ' + label + ' above and copy it.';
+    });
+  }
+  function indent(src, n) { var pad = new Array(n + 1).join(' '); return src.split('\n').map(function (l) { return l ? pad + l : l; }).join('\n'); }
+  function toJSX(h) {
+    var voids = 'area|base|br|col|embed|hr|img|input|link|meta|source|track|wbr';
+    var j = h.replace(/<!--([\s\S]*?)-->/g, '{/*$1*/}')
+      .replace(/(\s)class=/g, '$1className=').replace(/(\s)for=/g, '$1htmlFor=')
+      .replace(/(\s)(tabindex|readonly|maxlength|colspan|rowspan|autocomplete|crossorigin|srcset|stroke-width|stroke-linecap|stroke-linejoin|fill-rule|clip-rule|viewbox)=/gi, function (m0, sp0, a) {
+        var map = { tabindex: 'tabIndex', readonly: 'readOnly', maxlength: 'maxLength', colspan: 'colSpan', rowspan: 'rowSpan', autocomplete: 'autoComplete', crossorigin: 'crossOrigin', srcset: 'srcSet', 'stroke-width': 'strokeWidth', 'stroke-linecap': 'strokeLinecap', 'stroke-linejoin': 'strokeLinejoin', 'fill-rule': 'fillRule', 'clip-rule': 'clipRule', viewbox: 'viewBox' };
+        return sp0 + map[a.toLowerCase()] + '=';
+      })
+      .replace(new RegExp('<(' + voids + ')((?:\\s[^<>]*?)?)\\s*/?>', 'gi'), '<$1$2 />');
+    return 'export default function Component() {\n  return (\n    <>\n' + indent(j, 6) + '\n    </>\n  );\n}\n';
+  }
+  function toVue(h) { return '<template>\n' + indent(h, 2) + '\n</template>\n'; }
+  function b64e(str) { var b = new TextEncoder().encode(str), s2 = ''; b.forEach(function (c) { s2 += String.fromCharCode(c); }); return btoa(s2).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+  function b64d(t) { t = t.replace(/-/g, '+').replace(/_/g, '/'); while (t.length % 4) t += '='; var bin = atob(t), a = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return new TextDecoder().decode(a); }
+  document.querySelectorAll('[data-exp]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var k = b.dataset.exp;
+      if (k === 'html') outShow('HTML', st.html, b);
+      else if (k === 'jsx') outShow('JSX', toJSX(st.html), b);
+      else if (k === 'vue') outShow('Vue', toVue(st.html), b);
+      else {
+        var base = ''; try { base = location.href.split('#')[0]; } catch (e) {}
+        outShow('Permalink', base + '#s=' + b64e(JSON.stringify({ h: st.html, c: st.css })), b);
+      }
+    });
+  });
+
+  /* ---------- saved snippets and projects ---------- */
+  var SVKEY = 'tailwindex-saved';
+  function svLoad() { try { var a = JSON.parse(localStorage.getItem(SVKEY) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
+  function svStore(a) { try { localStorage.setItem(SVKEY, JSON.stringify(a)); return true; } catch (e) { return false; } }
+  function svMsg(t) { $('#svMsg').textContent = t; }
+  function svRender() {
+    var list = svLoad(), box = $('#svList');
+    box.innerHTML = '';
+    list.forEach(function (it, i) {
+      var d = document.createElement('div'), n = document.createElement('span');
+      n.textContent = (it.kind === 'project' ? 'Project: ' : 'Snippet: ') + it.name;
+      var go = document.createElement('button'), del = document.createElement('button');
+      go.type = del.type = 'button'; go.className = del.className = 'btn sm';
+      go.textContent = it.kind === 'project' ? 'Open' : 'Insert'; del.textContent = 'Delete';
+      go.addEventListener('click', function () {
+        if (it.kind === 'project') {
+          st.html = it.html; st.css = it.css || st.css;
+          sel.id = -1; sel.tag = ''; chg = null;
+          try { frame.contentWindow.postMessage({ tw: 'unselect' }, '*'); } catch (e) {}
+          save(); showTab(st.tab === 'css' ? 'css' : 'html'); renderSel(); refreshMarks(); schedule(50);
+          svMsg('Opened ' + it.name + '.');
+        } else {
+          st.html = st.html.replace(/\s*$/, '') + '\n' + it.html + '\n';
+          save(); if (st.tab === 'html') { ta.value = st.html; refreshEditor(); } schedule(50);
+          svMsg('Inserted ' + it.name + ' at the end of the HTML.');
+        }
+      });
+      del.addEventListener('click', function () { var a = svLoad(); a.splice(i, 1); svStore(a); svRender(); svMsg('Deleted.'); });
+      d.appendChild(n); d.appendChild(go); d.appendChild(del); box.appendChild(d);
+    });
+  }
+  function svName(def) { var v = $('#svName').value.trim(); return v || def; }
+  $('#svProject').addEventListener('click', function () {
+    var a = svLoad(), name = svName('Project ' + (a.length + 1));
+    a.unshift({ kind: 'project', name: name, html: st.html, css: st.css });
+    svMsg(svStore(a) ? 'Saved ' + name + '.' : 'Could not save. Browser storage is blocked.'); svRender();
+  });
+  $('#svSnippet').addEventListener('click', function () {
+    if (sel.id < 0) { svMsg('Select an element in the preview first.'); return; }
+    var t = startTags(st.html)[sel.id];
+    if (!t) { svMsg('That element is no longer in the HTML.'); return; }
+    var end = t.end, depth = 0, re = /<(\/?)([A-Za-z][\w-]*)[^>]*?(\/?)>/g, x, started = false;
+    re.lastIndex = t.start;
+    while ((x = re.exec(st.html))) {
+      var self = x[3] === '/' || VOIDS[x[2].toLowerCase()];
+      if (!x[1]) { if (!self) depth++; } else depth--;
+      if (!x[1] && !started) started = true;
+      if (depth <= 0) { end = re.lastIndex; break; }
+    }
+    var a = svLoad(), name = svName(sel.tag + ' ' + (a.length + 1));
+    a.unshift({ kind: 'snippet', name: name, html: st.html.slice(t.start, end) });
+    svMsg(svStore(a) ? 'Saved ' + name + '.' : 'Could not save. Browser storage is blocked.'); svRender();
+  });
+  svRender();
+
+  /* ---------- convert Tailwind to CSS ---------- */
+  function fmtCSS(css) {
+    var out = '', d = 0, par = 0, skip = false, ind = function (n) { return new Array(n + 1).join('  '); };
+    css = css.replace(/\s+/g, ' ');
+    for (var i = 0; i < css.length; i++) {
+      var ch = css.charAt(i);
+      if (skip && ch === ' ') continue;
+      skip = false;
+      if (ch === '(') par++;
+      if (ch === ')') par--;
+      if (ch === '{' && !par) { d++; out = out.replace(/\s+$/, '') + ' {\n' + ind(d); skip = true; }
+      else if (ch === ';' && !par) { out += ';\n' + ind(d); skip = true; }
+      else if (ch === '}' && !par) { d = Math.max(0, d - 1); out = out.replace(/\s+$/, '') + '\n' + ind(d) + '}\n' + ind(d); skip = true; }
+      else out += ch;
+    }
+    return out.trim();
+  }
+  function twToCSS(classes) {
+    if (!genCSS) return { err: 'The generated CSS is not ready yet. Wait a moment and try again.' };
+    var sheet;
+    try { sheet = new CSSStyleSheet(); sheet.replaceSync(genCSS); } catch (e) { return { err: 'Could not read the generated CSS.' }; }
+    var toks = classes.split(/\s+/).filter(Boolean), out = [], missing = [];
+    toks.forEach(function (tok) {
+      var re = new RegExp('\\.' + CSS.escape(tok).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?![\\w-])'), found = [];
+      (function walk(rules, ctx) {
+        for (var i = 0; i < rules.length; i++) {
+          var r = rules[i];
+          if (r.selectorText !== undefined) {
+            if (re.test(r.selectorText)) {
+              var t = r.cssText;
+              for (var k = ctx.length - 1; k >= 0; k--) t = ctx[k] + ' { ' + t + ' }';
+              found.push(t);
+            }
+          } else if (r.cssRules) {
+            var head = r.cssText.slice(0, r.cssText.indexOf('{')).trim();
+            walk(r.cssRules, /^@layer/i.test(head) ? ctx : ctx.concat(head));
+          }
+        }
+      })(sheet.cssRules, []);
+      if (found.length) out = out.concat(found); else missing.push(tok);
+    });
+    return { css: out.length ? fmtCSS(out.join(' ')) : '', missing: missing };
+  }
+  $('#cvGo').addEventListener('click', function () {
+    var r = twToCSS($('#cvIn').value), box = $('#cvOut');
+    if (r.err) { $('#cvMsg').textContent = r.err; box.hidden = true; $('#cvCopy').disabled = true; return; }
+    box.hidden = false; box.value = r.css; $('#cvCopy').disabled = !r.css;
+    $('#cvMsg').textContent = r.css ? (r.missing.length ? 'No CSS found for: ' + r.missing.join(', ') + '.' : 'Converted.') : 'No CSS found. Check the class names.';
+    if (r.css) copyText(r.css, function (ok) { if (ok) { $('#cvCopy').textContent = 'Copied'; setTimeout(function () { $('#cvCopy').textContent = 'Copy CSS'; }, 1600); $('#cvMsg').textContent = (r.missing.length ? 'No CSS for: ' + r.missing.join(', ') + '. ' : '') + 'Copied.'; } });
+  });
+  $('#cvCopy').addEventListener('click', function () { copyText($('#cvOut').value, function (ok) { $('#cvMsg').textContent = ok ? 'Copied.' : 'Copying is blocked here. Select the CSS above.'; }); });
+
+  /* ---------- ask Claude ---------- */
+  var aiClasses = '', shotWait = {}, shotN = 0;
+  function aiSay(t) { var m = $('#aiMsg'); m.textContent = t; m.hidden = !t; }
+  function takeShot(id) {
+    return new Promise(function (res) {
+      var n = ++shotN, done = false;
+      shotWait[n] = function (b) { if (!done) { done = true; res(b); } };
+      setTimeout(function () { if (!done) { done = true; res(null); } }, 5000);
+      try { frame.contentWindow.postMessage({ tw: 'shot', id: id, req: n }, '*'); } catch (e) { res(null); }
+    });
+  }
+  window.addEventListener('message', function (e) {
+    if (e.source !== frame.contentWindow) return;
+    var d = e.data;
+    if (d && d.tw === 'shotres' && shotWait[d.req]) { shotWait[d.req](d.blob || null); delete shotWait[d.req]; }
+  });
+  function outerOf(id) {
+    var t = startTags(st.html)[id]; if (!t) return '';
+    var depth = 0, re = /<(\/?)([A-Za-z][\w-]*)[^>]*?(\/?)>/g, x, end = t.end;
+    re.lastIndex = t.start;
+    while ((x = re.exec(st.html))) {
+      var self = x[3] === '/' || VOIDS[x[2].toLowerCase()];
+      if (!x[1]) { if (!self) depth++; } else depth--;
+      if (depth <= 0) { end = re.lastIndex; break; }
+    }
+    return st.html.slice(t.start, end);
+  }
+  $('#aiGo').addEventListener('click', async function () {
+    if (sel.id < 0) { aiSay('Select an element in the preview first.'); return; }
+    var sample = null;
+    try { sample = window.claude && window.claude.use ? await window.claude.use('sample') : null; } catch (e) { sample = null; }
+    if (!sample) { aiSay('Asking Claude is only available in the published page, for people signed in.'); return; }
+    var btn = this; btn.disabled = true; $('#aiApply').disabled = true; $('#aiOut').textContent = ''; $('#aiResult').hidden = true;
+    flash(btn, 60000);
+    aiSay('Capturing the element...');
+    var blob = await takeShot(sel.id), canImg = false;
+    try { canImg = !!(await sample.limits()).images; } catch (e) {}
+    aiSay('Waiting for Claude...');
+    var html = outerOf(sel.id), cls = (classOf(sel.id) || []).join(' ');
+    var prompt = 'You restyle HTML that uses Tailwind CSS v4 utility classes.\nRequest: ' + 'Restyle this' + '\n\nSelected element (with its children):\n' + html.slice(0, 6000) + '\n\nCurrent classes on the selected element itself: ' + (cls || '(none)') + '\n' + (blob && canImg ? 'A screenshot of the element is attached.\n' : '') +
+      '\nChange only the classes on the selected element, not its children. Reply with JSON only, like {"classes":"full new class list","why":"one short sentence"}.';
+    try {
+      var out = await sample.json(prompt, blob && canImg ? { images: [blob], modelTier: 'default' } : { modelTier: 'default' });
+      aiClasses = String(out && out.classes || '').trim();
+      $('#aiOut').textContent = aiClasses; $('#aiResult').hidden = !aiClasses;
+      flash(btn, 2500);
+      aiSay((out && out.why ? out.why : 'Done.') + (blob && canImg ? '' : ' (No screenshot was sent.)'));
+      $('#aiApply').disabled = !aiClasses;
+    } catch (err) {
+      unflash(btn);
+      aiSay(err && err.code === 'not_granted' ? 'Permission to ask Claude was declined.' : err && err.code === 'rate_limited' ? 'Too many requests. Try again in a moment.' : 'Claude could not answer. Try again.');
+    }
+    btn.disabled = false;
+  });
+  $('#aiApply').addEventListener('click', function () {
+    if (sel.id < 0 || !aiClasses) return;
+    applyClasses(aiClasses.split(/\s+/).filter(Boolean));
+    aiSay('Applied.');
+  });
+
+  /* ---------- permalink on load ---------- */
+  (function () {
+    var m = /[#&]s=([\w-]+)/.exec(location.hash || '');
+    if (!m) return;
+    try {
+      var o = JSON.parse(b64d(m[1]));
+      if (typeof o.h === 'string') { st.html = o.h; if (typeof o.c === 'string') st.css = o.c; showTab('html'); schedule(50); }
+    } catch (e) {}
+  })();
+
+  var restoreTimer = 0;
+  function restoreLabel(t) { $('#restoreLbl').textContent = t === 'Restore example' ? '' : t; }
+  $('#restore').addEventListener('click', function () {
+    if (!restoreTimer) {
+      restoreLabel('Click again to confirm');
+      restoreTimer = setTimeout(function () { restoreTimer = 0; restoreLabel('Restore example'); }, 3000);
+      return;
+    }
+    clearTimeout(restoreTimer); restoreTimer = 0; restoreLabel('Restore example');
+    st.html = DEF_HTML; st.css = DEF_CSS;
+    sel.id = -1; sel.tag = ''; chg = null;
+    try { frame.contentWindow.postMessage({ tw: 'unselect' }, '*'); } catch (e) {}
+    save(); showTab(st.tab); renderSel(); refreshMarks(); schedule(50);
+    restoreLabel('Restored');
+    restoreTimer = setTimeout(function () { restoreTimer = 0; restoreLabel('Restore example'); }, 1500);
+  });
+  $('#selMode').addEventListener('click', function () {
+    selMode = !selMode;
+    this.setAttribute('aria-pressed', String(selMode));
+    try { frame.contentWindow.postMessage({ tw: 'mode', on: selMode }, '*'); } catch (e) {}
+  });
+  window.addEventListener('message', function (e) {
+    if (e.source !== frame.contentWindow) return;
+    var d = e.data;
+    if (d && d.tw === 'select' && typeof d.id === 'number') { revealSel(d.id); setSel(d.id, d.tag || ''); }
+    if (d && d.tw === 'ctx') openCtx(Number(d.x) || 0, Number(d.y) || 0);
+    if (d && d.tw === 'key') navigate(d.key);
+  });
+  renderSel();
+
+  /* ---------- boot ---------- */
+  setLayout(st.layout);
+  setDark(st.dark);
+  setWidth(st.width);
+  showTab('html');
+  renderGen();
+  render();
+})();
+</script>
