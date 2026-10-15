@@ -132,7 +132,9 @@ body.dragging iframe { pointer-events: none; }
 
 /* Pane toolbars */
 .bar { flex: none; display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 8px 0 10px; border-bottom: 1px solid var(--line); }
-.tab { position: relative; height: 38px; padding: 0 8px; border: 0; background: transparent; color: var(--muted); font-size: 12.5px; }
+.tabs { flex: 1; min-width: 0; display: flex; align-self: stretch; overflow-x: auto; scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
+.tab { flex: none; position: relative; height: 38px; padding: 0 8px; border: 0; background: transparent; color: var(--muted); font-size: 12.5px; }
 .tab:hover { color: var(--fg); }
 .tab[aria-selected="true"] { color: var(--fg); }
 .tab[aria-selected="true"]::after { content: ""; position: absolute; left: 8px; right: 8px; bottom: -1px; height: 2px; border-radius: 2px; background: var(--accent); }
@@ -161,6 +163,42 @@ body.dragging iframe { pointer-events: none; }
 .n { color: var(--syn-num); }
 .cv { color: var(--syn-attr); }
 .chgt, .chgt .vr { color: var(--chg); background: var(--chg-soft); border-radius: 2px; }
+
+/* Templates (CSS tab) */
+.tplbar { flex: none; display: flex; align-items: center; gap: 8px; padding: 6px 8px 6px 12px; border-bottom: 1px solid var(--line); }
+.tpl-l { flex: none; color: var(--faint); font-size: 12px; }
+.tpls { flex: 1; min-width: 0; display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+.tpls::-webkit-scrollbar { display: none; }
+.tpl { flex: none; display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 9px 0 7px; border: 1px solid var(--line); border-radius: 999px; background: transparent; color: var(--muted); font-size: 12px; white-space: nowrap; }
+.tpl:hover { color: var(--fg); border-color: var(--line-2); }
+.tpl[aria-pressed="true"] { color: var(--fg); border-color: var(--accent); background: var(--accent-soft); }
+.tpl .dots { display: inline-flex; }
+.tpl .dots i { width: 10px; height: 10px; margin-left: -3px; border-radius: 50%; box-shadow: 0 0 0 1.5px var(--panel); }
+.tpl .dots i:first-child { margin-left: 0; }
+.tpl-own { display: inline-flex; align-items: center; }
+.tpl-own .tpl { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.tpl-del { display: inline-grid; place-items: center; width: 22px; height: 26px; padding: 0; border: 1px solid var(--line); border-left: 0; border-radius: 0 999px 999px 0; background: transparent; color: var(--faint); }
+.tpl-del:hover { color: var(--fg); background: var(--hover); }
+.tplform { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 6px 8px 6px 12px; border-bottom: 1px solid var(--line); }
+.tplform input { width: 12rem; height: 28px; padding: 0 8px; border: 1px solid var(--line-2); border-radius: 6px; background: var(--raised); color: var(--fg); font-size: 12.5px; }
+.tplform input:focus { border-color: var(--accent); outline: 0; }
+.tpl-note { color: var(--faint); font-size: 12px; }
+
+/* Colour swatches in the index */
+.itm td.sw-cell { padding: 4px 12px 10px; white-space: normal; }
+.sw-theme { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+.sw-theme:empty { display: none; }
+.tok { display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 7px 0 4px; border: 1px solid var(--line); border-radius: 5px; background: transparent; color: var(--muted); font: 11.5px var(--mono); }
+.tok::before { content: ""; width: 12px; height: 12px; border-radius: 3px; background: var(--c); box-shadow: inset 0 0 0 1px rgba(127, 127, 127, 0.3); }
+.tok:hover, .tok.cur { color: var(--fg); border-color: var(--muted); }
+.tok.on { color: var(--accent); border-color: var(--accent); }
+.sw-grid { display: grid; grid-template-columns: 4.6rem repeat(11, minmax(14px, 20px)); gap: 3px; align-items: center; }
+.sw-grid .sw-n { color: var(--faint); font: 11px var(--mono); }
+.sw-grid .sw-h { color: var(--faint); font: 9.5px var(--mono); text-align: center; }
+.swatch { width: 100%; aspect-ratio: 1; padding: 0; border: 0; border-radius: 3px; background: var(--c); box-shadow: inset 0 0 0 1px rgba(127, 127, 127, 0.2); cursor: pointer; }
+.swatch:hover, .swatch.cur { outline: 2px solid var(--fg); outline-offset: 1px; }
+.swatch[data-off] { visibility: hidden; }
+.swatch.on { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 /* Generated CSS */
 .gen { flex: 1; min-height: 0; display: flex; flex-direction: column; }
@@ -292,7 +330,10 @@ body.dragging iframe { pointer-events: none; }
 .crumbs button[aria-current="true"] { color: var(--syn-tag); }
 .ptools .sel-none { color: var(--faint); font-size: 12px; }
 .stage { position: relative; flex: 1; min-height: 0; display: flex; justify-content: center; background: var(--stage); }
+.stage { overflow: hidden; }
 .stage iframe { height: 100%; width: 100%; border: 0; background: transparent; }
+.stage[data-fixed="1"] #frame { flex: none; transform-origin: top center; box-shadow: 0 0 0 1px var(--line-2); }
+.wread { color: var(--faint); font: 11.5px var(--mono); white-space: nowrap; }
 .notice { position: absolute; left: 12px; right: 12px; bottom: 12px; z-index: 2; margin: 0 auto; max-width: 34rem; padding: 10px 12px; border: 1px solid var(--line-2); border-radius: 8px; background: var(--panel); box-shadow: var(--shadow); color: var(--fg); font-size: 12.5px; }
 
 /* Footer */
@@ -335,17 +376,29 @@ body.dragging iframe { pointer-events: none; }
 
   <main class="workspace" id="workspace" data-layout="split">
     <section class="pane editorPane" aria-label="Editor">
-      <div class="bar" role="tablist" aria-label="Source">
+      <div class="bar">
+        <div class="tabs" role="tablist" aria-label="Source">
         <button class="tab" role="tab" type="button" data-tab="html" aria-selected="true">HTML</button>
         <button class="tab" role="tab" type="button" data-tab="css" aria-selected="false">CSS</button>
         <button class="tab" role="tab" type="button" data-tab="tree" aria-selected="false">Tree</button>
-        <button class="tab" role="tab" type="button" data-tab="gen" aria-selected="false">Output</button>
+        <button class="tab" role="tab" type="button" data-tab="gen" aria-selected="false">Generated<span class="hide-narrow"> CSS</span></button>
         <button class="tab" role="tab" type="button" data-tab="changes" aria-selected="false">Changes<span class="count" id="chgCount" hidden></span></button>
-        <div class="spacer"></div>
+        </div>
         <button class="ibtn" id="undoBtn" type="button" aria-label="Undo" title="Undo (⌘Z)" disabled><svg class="icon" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
         <button class="ibtn" id="redoBtn" type="button" aria-label="Redo" title="Redo (⇧⌘Z)" disabled><svg class="icon" viewBox="0 0 24 24"><path d="M15 14l5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
         <button class="tbtn hide-narrow" id="restore" type="button" title="Replace everything with the starter example"><span id="restoreLbl">Reset</span></button>
       </div>
+      <div class="tplbar" id="tplbar" hidden>
+        <span class="tpl-l">Template</span>
+        <div class="tpls" id="tpls" role="group" aria-label="CSS templates"></div>
+        <button class="ibtn" id="tplAdd" type="button" title="Save the CSS below as your own template" aria-label="Save the CSS below as your own template" aria-expanded="false" aria-controls="tplForm"><svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+      </div>
+      <form class="tplform" id="tplForm" hidden>
+        <input id="tplName" type="text" maxlength="40" placeholder="Name" aria-label="Template name" autocomplete="off" spellcheck="false">
+        <button class="tbtn" type="submit">Save</button>
+        <button class="tbtn" type="button" id="tplCancel">Cancel</button>
+        <span class="tpl-note">Saves the CSS below. Paste your own stylesheet in first.</span>
+      </form>
       <div class="tree" id="tree" hidden>
         <div class="tree-bar"><kbd class="k">↑</kbd> parent <kbd class="k">↓</kbd> child <kbd class="k">←</kbd><kbd class="k">→</kbd> siblings<span class="spacer"></span>
           <button class="tbtn" id="xtogTree" type="button">Collapse all</button></div>
@@ -378,6 +431,8 @@ body.dragging iframe { pointer-events: none; }
             <button type="button" role="tab" data-g="properties" aria-selected="false">Properties</button>
           </div>
           <span class="size" id="genSize">waiting</span>
+          <button class="tbtn" id="genCopy" type="button" title="Copy the CSS shown below">Copy</button>
+          <button class="tbtn" id="genExport" type="button" title="Download the CSS shown below as a .css file">Export</button>
         </div>
         <div class="gen-view">
           <div class="gutter" id="genGutter" aria-hidden="true"></div>
@@ -418,6 +473,15 @@ body.dragging iframe { pointer-events: none; }
         <span class="sel-none" id="ptSel">Click an element to select it</span>
         <button type="button" class="tbtn" id="viewReset" hidden>Reset</button>
         <button type="button" class="tbtn" id="playBtn" hidden><svg class="icon" viewBox="0 0 24 24" style="width:12px;height:12px;fill:currentColor"><path d="M7 5l12 7-12 7z"/></svg><span>Play</span></button>
+        <span class="wread hide-narrow" id="wread"></span>
+        <div class="seg hide-narrow" role="group" aria-label="Preview width" id="widthSeg">
+          <button type="button" data-w="0" aria-pressed="true" title="Fill the pane">Full</button>
+          <button type="button" data-w="375" aria-pressed="false" title="375px, a phone: no breakpoint prefix applies">375</button>
+          <button type="button" data-w="640" aria-pressed="false" title="640px: sm: applies">sm</button>
+          <button type="button" data-w="768" aria-pressed="false" title="768px: sm: and md: apply">md</button>
+          <button type="button" data-w="1024" aria-pressed="false" title="1024px: up to lg: applies">lg</button>
+          <button type="button" data-w="1280" aria-pressed="false" title="1280px: up to xl: applies">xl</button>
+        </div>
         <div class="seg" role="group" aria-label="Preview mode">
           <button type="button" id="selMode" aria-pressed="true" title="Click elements in the preview to select them">Select</button>
           <button type="button" id="viewMode" aria-pressed="false" title="Try utilities on three sample blocks">Samples</button>
@@ -470,42 +534,68 @@ body.dragging iframe { pointer-events: none; }
   var THEMEKEY = 'tailwindex-theme';
 
   var DEF_HTML = [
-    '<div class="relative grid min-h-screen grid-cols-[1fr_2.5rem_auto_2.5rem_1fr] grid-rows-[1fr_1px_auto_1px_1fr] bg-white [--pattern-fg:var(--color-gray-950)]/5 dark:bg-gray-950 dark:[--pattern-fg:var(--color-white)]/10">',
+    '<div class="relative grid min-h-screen grid-cols-[1fr_2.5rem_auto_2.5rem_1fr] grid-rows-[1fr_1px_auto_1px_1fr] bg-background [--pattern-fg:color-mix(in_oklab,var(--color-foreground)_8%,transparent)]">',
     '  <div class="col-start-2 row-span-full border-x border-x-[color:var(--pattern-fg)] bg-[size:10px_10px] bg-[image:repeating-linear-gradient(315deg,var(--pattern-fg)_0,var(--pattern-fg)_1px,transparent_0,transparent_50%)]"></div>',
     '  <div class="col-start-4 row-span-full border-x border-x-[color:var(--pattern-fg)] bg-[size:10px_10px] bg-[image:repeating-linear-gradient(315deg,var(--pattern-fg)_0,var(--pattern-fg)_1px,transparent_0,transparent_50%)]"></div>',
     '  <div class="col-span-full row-start-2 bg-[color:var(--pattern-fg)]"></div>',
     '  <div class="col-span-full row-start-4 bg-[color:var(--pattern-fg)]"></div>',
-    '  <div class="col-start-3 row-start-3 flex max-w-lg flex-col bg-gray-100 p-2 dark:bg-white/10">',
-    '    <div class="rounded-xl bg-white p-10 text-sm/7 text-gray-700 dark:bg-gray-950 dark:text-gray-300">',
-    '      <div class="mb-10 flex items-center gap-3"><svg class="h-9 w-9 text-sky-400" viewBox="0 0 32 32" aria-hidden="true"><rect x="3" y="6" width="26" height="5" rx="2.5" fill="currentColor"/><rect x="3" y="13.5" width="17" height="5" rx="2.5" fill="currentColor"/><rect x="3" y="21" width="22" height="5" rx="2.5" fill="currentColor"/></svg><span class="text-3xl font-medium tracking-tight text-gray-950 dark:text-white">tailwind<b class="font-bold tracking-wide text-sky-400">ex</b></span></div>',
+    '  <div class="col-start-3 row-start-3 flex max-w-lg flex-col bg-muted p-2">',
+    '    <div class="rounded-xl bg-card p-10 text-sm/7 text-muted-foreground">',
+    '      <div class="mb-10 flex items-center gap-3"><svg class="h-9 w-9 text-primary" viewBox="0 0 32 32" aria-hidden="true"><rect x="3" y="6" width="26" height="5" rx="2.5" fill="currentColor"/><rect x="3" y="13.5" width="17" height="5" rx="2.5" fill="currentColor"/><rect x="3" y="21" width="22" height="5" rx="2.5" fill="currentColor"/></svg><span class="text-3xl font-medium tracking-tight text-card-foreground">tailwind<b class="font-bold tracking-wide text-primary">ex</b></span></div>',
     '      <div class="space-y-6">',
     '        <p>An advanced online playground for Tailwind CSS, including support for things like:</p>',
     '        <ul role="list" class="space-y-3">',
-    '          <li class="flex"><svg class="h-[1lh] w-5.5 shrink-0" viewBox="0 0 22 22" fill="none" stroke-linecap="square"><circle cx="11" cy="11" r="11" class="fill-sky-400/25" /><circle cx="11" cy="11" r="10.5" class="stroke-sky-400/40" /><path d="M8 11.5L10.5 14L14 8" class="stroke-sky-800 dark:stroke-sky-300" /></svg><p class="ml-3">Customizing your theme with <code class="font-mono font-medium text-gray-950 dark:text-white">@theme</code></p></li>',
-    '          <li class="flex"><svg class="h-[1lh] w-5.5 shrink-0" viewBox="0 0 22 22" fill="none" stroke-linecap="square"><circle cx="11" cy="11" r="11" class="fill-sky-400/25" /><circle cx="11" cy="11" r="10.5" class="stroke-sky-400/40" /><path d="M8 11.5L10.5 14L14 8" class="stroke-sky-800 dark:stroke-sky-300" /></svg><p class="ml-3">Adding custom utilities with <code class="font-mono font-medium text-gray-950 dark:text-white">@utility</code></p></li>',
-    '          <li class="flex"><svg class="h-[1lh] w-5.5 shrink-0" viewBox="0 0 22 22" fill="none" stroke-linecap="square"><circle cx="11" cy="11" r="11" class="fill-sky-400/25" /><circle cx="11" cy="11" r="10.5" class="stroke-sky-400/40" /><path d="M8 11.5L10.5 14L14 8" class="stroke-sky-800 dark:stroke-sky-300" /></svg><p class="ml-3">Adding custom variants with <code class="font-mono font-medium text-gray-950 dark:text-white">@variant</code></p></li>',
-    '          <li class="flex"><svg class="h-[1lh] w-5.5 shrink-0" viewBox="0 0 22 22" fill="none" stroke-linecap="square"><circle cx="11" cy="11" r="11" class="fill-sky-400/25" /><circle cx="11" cy="11" r="10.5" class="stroke-sky-400/40" /><path d="M8 11.5L10.5 14L14 8" class="stroke-sky-800 dark:stroke-sky-300" /></svg><p class="ml-3">Code completion with instant preview</p></li>',
+    '          <li class="flex"><svg class="h-[1lh] w-5.5 shrink-0" viewBox="0 0 22 22" fill="none" stroke-linecap="square"><circle cx="11" cy="11" r="11" class="fill-primary/20" /><circle cx="11" cy="11" r="10.5" class="stroke-primary/40" /><path d="M8 11.5L10.5 14L14 8" class="stroke-primary" /></svg><p class="ml-3">Customizing your theme with <code class="font-mono font-medium text-card-foreground">@theme</code></p></li>',
+    '          <li class="flex"><svg class="h-[1lh] w-5.5 shrink-0" viewBox="0 0 22 22" fill="none" stroke-linecap="square"><circle cx="11" cy="11" r="11" class="fill-primary/20" /><circle cx="11" cy="11" r="10.5" class="stroke-primary/40" /><path d="M8 11.5L10.5 14L14 8" class="stroke-primary" /></svg><p class="ml-3">Adding custom utilities with <code class="font-mono font-medium text-card-foreground">@utility</code></p></li>',
+    '          <li class="flex"><svg class="h-[1lh] w-5.5 shrink-0" viewBox="0 0 22 22" fill="none" stroke-linecap="square"><circle cx="11" cy="11" r="11" class="fill-primary/20" /><circle cx="11" cy="11" r="10.5" class="stroke-primary/40" /><path d="M8 11.5L10.5 14L14 8" class="stroke-primary" /></svg><p class="ml-3">Adding custom variants with <code class="font-mono font-medium text-card-foreground">@variant</code></p></li>',
+    '          <li class="flex"><svg class="h-[1lh] w-5.5 shrink-0" viewBox="0 0 22 22" fill="none" stroke-linecap="square"><circle cx="11" cy="11" r="11" class="fill-primary/20" /><circle cx="11" cy="11" r="10.5" class="stroke-primary/40" /><path d="M8 11.5L10.5 14L14 8" class="stroke-primary" /></svg><p class="ml-3">Code completion with instant preview</p></li>',
     '        </ul>',
     '        <p>Perfect for learning how the framework works, prototyping a new idea, or creating a demo to share online.</p>',
     '      </div>',
-    '      <div class="mt-10 space-y-6 border-t border-gray-950/10 pt-10 dark:border-white/10">',
+    '      <div class="mt-10 space-y-6 border-t border-border pt-10">',
     '        <p>Want to dig deeper into Tailwind?</p>',
-    '        <a href="https://tailwindcss.com/docs" target="_blank" rel="noopener" class="inline-block font-semibold text-gray-950 underline decoration-sky-500 underline-offset-4 dark:text-white">Read the docs &rarr;</a>',
+    '        <a href="https://tailwindcss.com/docs" target="_blank" rel="noopener" class="inline-block font-semibold text-card-foreground underline decoration-primary underline-offset-4">Read the docs &rarr;</a>',
     '      </div>',
     '    </div>',
     '  </div>',
     '</div>'
   ].join('\n');
 
-  var DEF_CSS = [
-    '@import "tailwindcss";',
-    '',
-    '@custom-variant dark (&:where(.dark, .dark *));',
-    '',
-    '@theme {',
-    '  /* ... */',
-    '}'
-  ].join('\n');
+  /* Theme templates for the CSS tab, in the shadcn/ui token format (Tailwind v4, CSS-first). Each becomes a full stylesheet via themeCSS(). */
+  var TEMPLATES = [
+    {"id":"shadcn","label":"shadcn/ui","src":"ui.shadcn.com, theme-neutral (MIT)","light":{"background":"oklch(1 0 0)","foreground":"oklch(0.145 0 0)","card":"oklch(1 0 0)","card-foreground":"oklch(0.145 0 0)","popover":"oklch(1 0 0)","popover-foreground":"oklch(0.145 0 0)","primary":"oklch(0.205 0 0)","primary-foreground":"oklch(0.985 0 0)","secondary":"oklch(0.97 0 0)","secondary-foreground":"oklch(0.205 0 0)","muted":"oklch(0.97 0 0)","muted-foreground":"oklch(0.556 0 0)","accent":"oklch(0.97 0 0)","accent-foreground":"oklch(0.205 0 0)","destructive":"oklch(0.577 0.245 27.325)","border":"oklch(0.922 0 0)","input":"oklch(0.922 0 0)","ring":"oklch(0.708 0 0)","chart-1":"oklch(0.646 0.222 41.116)","chart-2":"oklch(0.6 0.118 184.704)","chart-3":"oklch(0.398 0.07 227.392)","chart-4":"oklch(0.828 0.189 84.429)","chart-5":"oklch(0.769 0.188 70.08)","radius":"0.625rem"},"dark":{"background":"oklch(0.145 0 0)","foreground":"oklch(0.985 0 0)","card":"oklch(0.205 0 0)","card-foreground":"oklch(0.985 0 0)","popover":"oklch(0.205 0 0)","popover-foreground":"oklch(0.985 0 0)","primary":"oklch(0.922 0 0)","primary-foreground":"oklch(0.205 0 0)","secondary":"oklch(0.269 0 0)","secondary-foreground":"oklch(0.985 0 0)","muted":"oklch(0.269 0 0)","muted-foreground":"oklch(0.708 0 0)","accent":"oklch(0.269 0 0)","accent-foreground":"oklch(0.985 0 0)","destructive":"oklch(0.704 0.191 22.216)","border":"oklch(1 0 0 / 10%)","input":"oklch(1 0 0 / 15%)","ring":"oklch(0.556 0 0)","chart-1":"oklch(0.488 0.243 264.376)","chart-2":"oklch(0.696 0.17 162.48)","chart-3":"oklch(0.769 0.188 70.08)","chart-4":"oklch(0.627 0.265 303.9)","chart-5":"oklch(0.645 0.246 16.439)"}},
+    {"id":"material","label":"Material 3","src":"m3.material.io baseline color scheme, mapped to shadcn tokens","light":{"background":"#fef7ff","foreground":"#1d1b20","card":"#f3edf7","card-foreground":"#1d1b20","popover":"#f3edf7","popover-foreground":"#1d1b20","primary":"#6750a4","primary-foreground":"#ffffff","secondary":"#e8def8","secondary-foreground":"#1d192b","muted":"#e7e0ec","muted-foreground":"#49454f","accent":"#eaddff","accent-foreground":"#21005d","destructive":"#b3261e","destructive-foreground":"#ffffff","border":"#cac4d0","input":"#79747e","ring":"#6750a4","font-sans":"Roboto, sans-serif","radius":"0.75rem"},"dark":{"background":"#141218","foreground":"#e6e0e9","card":"#211f26","card-foreground":"#e6e0e9","popover":"#211f26","popover-foreground":"#e6e0e9","primary":"#d0bcff","primary-foreground":"#381e72","secondary":"#4a4458","secondary-foreground":"#e8def8","muted":"#49454f","muted-foreground":"#cac4d0","accent":"#4f378b","accent-foreground":"#eaddff","destructive":"#f2b8b5","destructive-foreground":"#601410","border":"#49454f","input":"#938f99","ring":"#d0bcff"}},
+    {"id":"claude","label":"Claude","src":"tweakcn.com (Apache-2.0)","light":{"background":"#faf9f5","foreground":"#3d3929","card":"#faf9f5","card-foreground":"#141413","popover":"#ffffff","popover-foreground":"#28261b","primary":"#c96442","primary-foreground":"#ffffff","secondary":"#e9e6dc","secondary-foreground":"#535146","muted":"#ede9de","muted-foreground":"#83827d","accent":"#e9e6dc","accent-foreground":"#28261b","destructive":"#141413","destructive-foreground":"#ffffff","border":"#dad9d4","input":"#b4b2a7","ring":"#c96442","chart-1":"#b05730","chart-2":"#9c87f5","chart-3":"#ded8c4","chart-4":"#dbd3f0","chart-5":"#b4552d","radius":"0.5rem"},"dark":{"background":"#262624","foreground":"#c3c0b6","card":"#262624","card-foreground":"#faf9f5","popover":"#30302e","popover-foreground":"#e5e5e2","primary":"#d97757","secondary":"#faf9f5","secondary-foreground":"#30302e","muted":"#1b1b19","muted-foreground":"#b7b5a9","accent":"#1a1915","accent-foreground":"#f5f4ee","destructive":"#ef4444","border":"#3e3e38","input":"#52514a","ring":"#d97757","chart-3":"#1a1915","chart-4":"#2f2b48"}},
+    {"id":"vercel","label":"Vercel","src":"tweakcn.com (Apache-2.0)","light":{"background":"oklch(0.99 0 0)","foreground":"oklch(0 0 0)","card":"oklch(1.00 0 0)","card-foreground":"oklch(0 0 0)","popover":"oklch(0.99 0 0)","popover-foreground":"oklch(0 0 0)","primary":"oklch(0 0 0)","primary-foreground":"oklch(1.00 0 0)","secondary":"oklch(0.94 0 0)","secondary-foreground":"oklch(0 0 0)","muted":"oklch(0.97 0 0)","muted-foreground":"oklch(0.44 0 0)","accent":"oklch(0.94 0 0)","accent-foreground":"oklch(0 0 0)","destructive":"oklch(0.63 0.19 23.03)","destructive-foreground":"oklch(1.00 0 0)","border":"oklch(0.92 0 0)","input":"oklch(0.94 0 0)","ring":"oklch(0 0 0)","chart-1":"oklch(0.81 0.17 75.35)","chart-2":"oklch(0.55 0.22 264.53)","chart-3":"oklch(0.72 0 0)","chart-4":"oklch(0.92 0 0)","chart-5":"oklch(0.56 0 0)","font-sans":"Geist, sans-serif","font-serif":"Georgia, serif","font-mono":"Geist Mono, monospace","radius":"0.5rem"},"dark":{"background":"oklch(0 0 0)","foreground":"oklch(1.00 0 0)","card":"oklch(0.14 0 0)","card-foreground":"oklch(1.00 0 0)","popover":"oklch(0.18 0 0)","popover-foreground":"oklch(1.00 0 0)","primary":"oklch(1.00 0 0)","primary-foreground":"oklch(0 0 0)","secondary":"oklch(0.25 0 0)","secondary-foreground":"oklch(1.00 0 0)","muted":"oklch(0.23 0 0)","muted-foreground":"oklch(0.72 0 0)","accent":"oklch(0.32 0 0)","accent-foreground":"oklch(1.00 0 0)","destructive":"oklch(0.69 0.20 23.91)","destructive-foreground":"oklch(0 0 0)","border":"oklch(0.26 0 0)","input":"oklch(0.32 0 0)","ring":"oklch(0.72 0 0)","chart-2":"oklch(0.58 0.21 260.84)","chart-3":"oklch(0.56 0 0)","chart-4":"oklch(0.44 0 0)","chart-5":"oklch(0.92 0 0)"}},
+    {"id":"supabase","label":"Supabase","src":"tweakcn.com (Apache-2.0)","light":{"background":"#fcfcfc","foreground":"#171717","card":"#fcfcfc","card-foreground":"#171717","popover":"#fcfcfc","popover-foreground":"#525252","primary":"#72e3ad","primary-foreground":"#1e2723","secondary":"#fdfdfd","secondary-foreground":"#171717","muted":"#ededed","muted-foreground":"#202020","accent":"#ededed","accent-foreground":"#202020","destructive":"#ca3214","destructive-foreground":"#fffcfc","border":"#dfdfdf","input":"#f6f6f6","ring":"#72e3ad","chart-1":"#72e3ad","chart-2":"#3b82f6","chart-3":"#8b5cf6","chart-4":"#f59e0b","chart-5":"#10b981","font-sans":"Outfit, sans-serif","font-serif":"ui-serif, Georgia, Cambria, \"Times New Roman\", Times, serif","font-mono":"monospace","radius":"0.5rem"},"dark":{"background":"#121212","foreground":"#e2e8f0","card":"#171717","card-foreground":"#e2e8f0","popover":"#242424","popover-foreground":"#a9a9a9","primary":"#006239","primary-foreground":"#dde8e3","secondary":"#242424","secondary-foreground":"#fafafa","muted":"#1f1f1f","muted-foreground":"#a2a2a2","accent":"#313131","accent-foreground":"#fafafa","destructive":"#541c15","destructive-foreground":"#ede9e8","border":"#292929","input":"#242424","ring":"#4ade80","chart-1":"#4ade80","chart-2":"#60a5fa","chart-3":"#a78bfa","chart-4":"#fbbf24","chart-5":"#2dd4bf"}},
+    {"id":"twitter","label":"Twitter","src":"tweakcn.com (Apache-2.0)","light":{"background":"#ffffff","foreground":"#0f1419","card":"#f7f8f8","card-foreground":"#0f1419","popover":"#ffffff","popover-foreground":"#0f1419","primary":"#1e9df1","primary-foreground":"#ffffff","secondary":"#0f1419","secondary-foreground":"#ffffff","muted":"#E5E5E6","muted-foreground":"#0f1419","accent":"#E3ECF6","accent-foreground":"#1e9df1","destructive":"#f4212e","destructive-foreground":"#ffffff","border":"#e1eaef","input":"#f7f9fa","ring":"#1da1f2","chart-1":"#1e9df1","chart-2":"#00b87a","chart-3":"#f7b928","chart-4":"#17bf63","chart-5":"#e0245e","font-sans":"Open Sans, sans-serif","font-serif":"Georgia, serif","font-mono":"Menlo, monospace","radius":"1.3rem"},"dark":{"background":"#000000","foreground":"#e7e9ea","card":"#17181c","card-foreground":"#d9d9d9","popover":"#000000","popover-foreground":"#e7e9ea","primary":"#1c9cf0","secondary":"#f0f3f4","secondary-foreground":"#0f1419","muted":"#181818","muted-foreground":"#72767a","accent":"#061622","accent-foreground":"#1c9cf0","border":"#242628","input":"#22303c"}},
+    {"id":"catppuccin","label":"Catppuccin","src":"tweakcn.com (Apache-2.0)","light":{"background":"#eff1f5","foreground":"#4c4f69","card":"#ffffff","card-foreground":"#4c4f69","popover":"#ccd0da","popover-foreground":"#4c4f69","primary":"#8839ef","primary-foreground":"#ffffff","secondary":"#ccd0da","secondary-foreground":"#4c4f69","muted":"#dce0e8","muted-foreground":"#6c6f85","accent":"#04a5e5","accent-foreground":"#ffffff","destructive":"#d20f39","destructive-foreground":"#ffffff","border":"#bcc0cc","input":"#ccd0da","ring":"#8839ef","chart-1":"#8839ef","chart-2":"#04a5e5","chart-3":"#40a02b","chart-4":"#fe640b","chart-5":"#dc8a78","font-sans":"Montserrat, sans-serif","font-serif":"Georgia, serif","font-mono":"Fira Code, monospace","radius":"0.35rem"},"dark":{"background":"#181825","foreground":"#cdd6f4","card":"#1e1e2e","card-foreground":"#cdd6f4","popover":"#45475a","popover-foreground":"#cdd6f4","primary":"#cba6f7","primary-foreground":"#1e1e2e","secondary":"#585b70","secondary-foreground":"#cdd6f4","muted":"#292c3c","muted-foreground":"#a6adc8","accent":"#89dceb","accent-foreground":"#1e1e2e","destructive":"#f38ba8","destructive-foreground":"#1e1e2e","border":"#313244","input":"#313244","ring":"#cba6f7","chart-1":"#cba6f7","chart-2":"#89dceb","chart-3":"#a6e3a1","chart-4":"#fab387","chart-5":"#f5e0dc"}},
+    {"id":"neo-brutalism","label":"Neo Brutalism","src":"tweakcn.com (Apache-2.0)","light":{"background":"#ffffff","foreground":"#000000","card":"#ffffff","card-foreground":"#000000","popover":"#ffffff","popover-foreground":"#000000","primary":"#ff3333","primary-foreground":"#ffffff","secondary":"#ffff00","secondary-foreground":"#000000","muted":"#f0f0f0","muted-foreground":"#333333","accent":"#0066ff","accent-foreground":"#ffffff","destructive":"#000000","destructive-foreground":"#ffffff","border":"#000000","input":"#000000","ring":"#ff3333","chart-1":"#ff3333","chart-2":"#ffff00","chart-3":"#0066ff","chart-4":"#00cc00","chart-5":"#cc00cc","font-sans":"DM Sans, sans-serif","font-mono":"Space Mono, monospace","radius":"0px"},"dark":{"background":"#000000","foreground":"#ffffff","card":"#333333","card-foreground":"#ffffff","popover":"#333333","popover-foreground":"#ffffff","primary":"#ff6666","primary-foreground":"#000000","secondary":"#ffff33","muted":"#1a1a1a","muted-foreground":"#cccccc","accent":"#3399ff","accent-foreground":"#000000","destructive":"#ffffff","destructive-foreground":"#000000","border":"#ffffff","input":"#ffffff","ring":"#ff6666","chart-1":"#ff6666","chart-2":"#ffff33","chart-3":"#3399ff","chart-4":"#33cc33","chart-5":"#cc33cc"}}
+  ];
+  function themeCSS(t) {
+    var out = ['@import "tailwindcss";', '', '/* ' + t.label + ' theme. Source: ' + t.src + '. */', '@custom-variant dark (&:where(.dark, .dark *));', ''];
+    function block(sel, o) {
+      var ks = Object.keys(o).filter(function (k) { return k.indexOf('font-') !== 0; });
+      if (!ks.length) return;
+      out.push(sel + ' {');
+      ks.forEach(function (k) { out.push('  --' + k + ': ' + o[k] + ';'); });
+      out.push('}', '');
+    }
+    block(':root', t.light);
+    block('.dark', t.dark);
+    var fonts = Object.keys(t.light).filter(function (k) { return k.indexOf('font-') === 0; });
+    if (fonts.length) {
+      out.push('@theme {');
+      fonts.forEach(function (k) { out.push('  --' + k + ': ' + t.light[k] + ';'); });
+      out.push('}', '');
+    }
+    out.push('@theme inline {');
+    Object.keys(t.light).forEach(function (k) { if (k !== 'radius' && k.indexOf('font-') !== 0) out.push('  --color-' + k + ': var(--' + k + ');'); });
+    if (t.light.radius !== undefined) out.push('  --radius-sm: calc(var(--radius) - 4px);', '  --radius-md: calc(var(--radius) - 2px);', '  --radius-lg: var(--radius);', '  --radius-xl: calc(var(--radius) + 4px);');
+    out.push('}', '', '@layer base {', '  * { @apply border-border outline-ring/50; }', '  body { @apply bg-background text-foreground; }', '}');
+    return out.join('\n') + '\n';
+  }
+  var DEF_CSS = themeCSS(TEMPLATES[0]);
 
   var saved = {};
   try { saved = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { saved = {}; }
@@ -517,6 +607,7 @@ body.dragging iframe { pointer-events: none; }
     tab: 'html',
     dark: saved.dark === undefined ? sysDark : !!saved.dark,
     layout: saved.layout || 'split',
+    width: Number(saved.width) || 0,
     gen: 'all'
   };
   /* The "original" each element's classes are compared against in the Changes tab. */
@@ -528,7 +619,7 @@ body.dragging iframe { pointer-events: none; }
   var vframe = $('#vframe'), frame = $('#frame'), workspace = $('#workspace');
 
   function save() {
-    try { localStorage.setItem(KEY, JSON.stringify({ html: st.html, css: st.css, base: st.base, dark: st.dark, layout: st.layout })); } catch (e) {}
+    try { localStorage.setItem(KEY, JSON.stringify({ html: st.html, css: st.css, base: st.base, dark: st.dark, layout: st.layout, width: st.width })); } catch (e) {}
   }
 
   /* ---------- highlighting ---------- */
@@ -704,6 +795,7 @@ body.dragging iframe { pointer-events: none; }
     rememberTyping();
     chg = null;
     st[st.tab] = ta.value;
+    if (st.tab === 'css') renderTpls();
     changed();
     refreshEditor();
     save();
@@ -734,6 +826,8 @@ body.dragging iframe { pointer-events: none; }
     $('#tree').hidden = t !== 'tree';
     $('#gen').hidden = t !== 'gen';
     $('#changes').hidden = t !== 'changes';
+    $('#tplbar').hidden = t !== 'css';
+    if (t !== 'css') $('#tplForm').hidden = true;
     document.querySelectorAll('.tab').forEach(function (b) { b.setAttribute('aria-selected', String(b.dataset.tab === t)); });
     if (t === 'tree') renderTree();
     if (t === 'changes') renderChanges();
@@ -1029,6 +1123,7 @@ body.dragging iframe { pointer-events: none; }
   var pt, waitTimer;
   function schedule(ms) { clearTimeout(pt); pt = setTimeout(render, ms); }
   function render() {
+    renderTokens();
     if (!genCSS) {
       $('#genSize').textContent = 'building';
       clearTimeout(waitTimer);
@@ -1129,6 +1224,7 @@ body.dragging iframe { pointer-events: none; }
     try { frame.contentWindow.postMessage({ tw: 'theme', dark: d }, '*'); } catch (e) {}
     try { vframe.contentWindow.postMessage({ vw: 'theme', dark: d }, '*'); } catch (e) {}
     save();
+    if (idxCats.length) renderTokens();
   }
   $('#themeSeg').addEventListener('click', function (e) {
     var b = e.target.closest('button'); if (b) setDark(b.dataset.dark === '1');
@@ -1932,9 +2028,49 @@ forced-colors: | @media (forced-colors: active) |`)
   var idxCats = [];
   var groups = {};
 
+  /* Tailwind v4.1.11 default palette (shades 50, 100-900, 950), for the swatch grids. */
+  var PALETTE = {
+    red: "oklch(97.1% 0.013 17.38)|oklch(93.6% 0.032 17.717)|oklch(88.5% 0.062 18.334)|oklch(80.8% 0.114 19.571)|oklch(70.4% 0.191 22.216)|oklch(63.7% 0.237 25.331)|oklch(57.7% 0.245 27.325)|oklch(50.5% 0.213 27.518)|oklch(44.4% 0.177 26.899)|oklch(39.6% 0.141 25.723)|oklch(25.8% 0.092 26.042)",
+    orange: "oklch(98% 0.016 73.684)|oklch(95.4% 0.038 75.164)|oklch(90.1% 0.076 70.697)|oklch(83.7% 0.128 66.29)|oklch(75% 0.183 55.934)|oklch(70.5% 0.213 47.604)|oklch(64.6% 0.222 41.116)|oklch(55.3% 0.195 38.402)|oklch(47% 0.157 37.304)|oklch(40.8% 0.123 38.172)|oklch(26.6% 0.079 36.259)",
+    amber: "oklch(98.7% 0.022 95.277)|oklch(96.2% 0.059 95.617)|oklch(92.4% 0.12 95.746)|oklch(87.9% 0.169 91.605)|oklch(82.8% 0.189 84.429)|oklch(76.9% 0.188 70.08)|oklch(66.6% 0.179 58.318)|oklch(55.5% 0.163 48.998)|oklch(47.3% 0.137 46.201)|oklch(41.4% 0.112 45.904)|oklch(27.9% 0.077 45.635)",
+    yellow: "oklch(98.7% 0.026 102.212)|oklch(97.3% 0.071 103.193)|oklch(94.5% 0.129 101.54)|oklch(90.5% 0.182 98.111)|oklch(85.2% 0.199 91.936)|oklch(79.5% 0.184 86.047)|oklch(68.1% 0.162 75.834)|oklch(55.4% 0.135 66.442)|oklch(47.6% 0.114 61.907)|oklch(42.1% 0.095 57.708)|oklch(28.6% 0.066 53.813)",
+    lime: "oklch(98.6% 0.031 120.757)|oklch(96.7% 0.067 122.328)|oklch(93.8% 0.127 124.321)|oklch(89.7% 0.196 126.665)|oklch(84.1% 0.238 128.85)|oklch(76.8% 0.233 130.85)|oklch(64.8% 0.2 131.684)|oklch(53.2% 0.157 131.589)|oklch(45.3% 0.124 130.933)|oklch(40.5% 0.101 131.063)|oklch(27.4% 0.072 132.109)",
+    green: "oklch(98.2% 0.018 155.826)|oklch(96.2% 0.044 156.743)|oklch(92.5% 0.084 155.995)|oklch(87.1% 0.15 154.449)|oklch(79.2% 0.209 151.711)|oklch(72.3% 0.219 149.579)|oklch(62.7% 0.194 149.214)|oklch(52.7% 0.154 150.069)|oklch(44.8% 0.119 151.328)|oklch(39.3% 0.095 152.535)|oklch(26.6% 0.065 152.934)",
+    emerald: "oklch(97.9% 0.021 166.113)|oklch(95% 0.052 163.051)|oklch(90.5% 0.093 164.15)|oklch(84.5% 0.143 164.978)|oklch(76.5% 0.177 163.223)|oklch(69.6% 0.17 162.48)|oklch(59.6% 0.145 163.225)|oklch(50.8% 0.118 165.612)|oklch(43.2% 0.095 166.913)|oklch(37.8% 0.077 168.94)|oklch(26.2% 0.051 172.552)",
+    teal: "oklch(98.4% 0.014 180.72)|oklch(95.3% 0.051 180.801)|oklch(91% 0.096 180.426)|oklch(85.5% 0.138 181.071)|oklch(77.7% 0.152 181.912)|oklch(70.4% 0.14 182.503)|oklch(60% 0.118 184.704)|oklch(51.1% 0.096 186.391)|oklch(43.7% 0.078 188.216)|oklch(38.6% 0.063 188.416)|oklch(27.7% 0.046 192.524)",
+    cyan: "oklch(98.4% 0.019 200.873)|oklch(95.6% 0.045 203.388)|oklch(91.7% 0.08 205.041)|oklch(86.5% 0.127 207.078)|oklch(78.9% 0.154 211.53)|oklch(71.5% 0.143 215.221)|oklch(60.9% 0.126 221.723)|oklch(52% 0.105 223.128)|oklch(45% 0.085 224.283)|oklch(39.8% 0.07 227.392)|oklch(30.2% 0.056 229.695)",
+    sky: "oklch(97.7% 0.013 236.62)|oklch(95.1% 0.026 236.824)|oklch(90.1% 0.058 230.902)|oklch(82.8% 0.111 230.318)|oklch(74.6% 0.16 232.661)|oklch(68.5% 0.169 237.323)|oklch(58.8% 0.158 241.966)|oklch(50% 0.134 242.749)|oklch(44.3% 0.11 240.79)|oklch(39.1% 0.09 240.876)|oklch(29.3% 0.066 243.157)",
+    blue: "oklch(97% 0.014 254.604)|oklch(93.2% 0.032 255.585)|oklch(88.2% 0.059 254.128)|oklch(80.9% 0.105 251.813)|oklch(70.7% 0.165 254.624)|oklch(62.3% 0.214 259.815)|oklch(54.6% 0.245 262.881)|oklch(48.8% 0.243 264.376)|oklch(42.4% 0.199 265.638)|oklch(37.9% 0.146 265.522)|oklch(28.2% 0.091 267.935)",
+    indigo: "oklch(96.2% 0.018 272.314)|oklch(93% 0.034 272.788)|oklch(87% 0.065 274.039)|oklch(78.5% 0.115 274.713)|oklch(67.3% 0.182 276.935)|oklch(58.5% 0.233 277.117)|oklch(51.1% 0.262 276.966)|oklch(45.7% 0.24 277.023)|oklch(39.8% 0.195 277.366)|oklch(35.9% 0.144 278.697)|oklch(25.7% 0.09 281.288)",
+    violet: "oklch(96.9% 0.016 293.756)|oklch(94.3% 0.029 294.588)|oklch(89.4% 0.057 293.283)|oklch(81.1% 0.111 293.571)|oklch(70.2% 0.183 293.541)|oklch(60.6% 0.25 292.717)|oklch(54.1% 0.281 293.009)|oklch(49.1% 0.27 292.581)|oklch(43.2% 0.232 292.759)|oklch(38% 0.189 293.745)|oklch(28.3% 0.141 291.089)",
+    purple: "oklch(97.7% 0.014 308.299)|oklch(94.6% 0.033 307.174)|oklch(90.2% 0.063 306.703)|oklch(82.7% 0.119 306.383)|oklch(71.4% 0.203 305.504)|oklch(62.7% 0.265 303.9)|oklch(55.8% 0.288 302.321)|oklch(49.6% 0.265 301.924)|oklch(43.8% 0.218 303.724)|oklch(38.1% 0.176 304.987)|oklch(29.1% 0.149 302.717)",
+    fuchsia: "oklch(97.7% 0.017 320.058)|oklch(95.2% 0.037 318.852)|oklch(90.3% 0.076 319.62)|oklch(83.3% 0.145 321.434)|oklch(74% 0.238 322.16)|oklch(66.7% 0.295 322.15)|oklch(59.1% 0.293 322.896)|oklch(51.8% 0.253 323.949)|oklch(45.2% 0.211 324.591)|oklch(40.1% 0.17 325.612)|oklch(29.3% 0.136 325.661)",
+    pink: "oklch(97.1% 0.014 343.198)|oklch(94.8% 0.028 342.258)|oklch(89.9% 0.061 343.231)|oklch(82.3% 0.12 346.018)|oklch(71.8% 0.202 349.761)|oklch(65.6% 0.241 354.308)|oklch(59.2% 0.249 0.584)|oklch(52.5% 0.223 3.958)|oklch(45.9% 0.187 3.815)|oklch(40.8% 0.153 2.432)|oklch(28.4% 0.109 3.907)",
+    rose: "oklch(96.9% 0.015 12.422)|oklch(94.1% 0.03 12.58)|oklch(89.2% 0.058 10.001)|oklch(81% 0.117 11.638)|oklch(71.2% 0.194 13.428)|oklch(64.5% 0.246 16.439)|oklch(58.6% 0.253 17.585)|oklch(51.4% 0.222 16.935)|oklch(45.5% 0.188 13.697)|oklch(41% 0.159 10.272)|oklch(27.1% 0.105 12.094)",
+    slate: "oklch(98.4% 0.003 247.858)|oklch(96.8% 0.007 247.896)|oklch(92.9% 0.013 255.508)|oklch(86.9% 0.022 252.894)|oklch(70.4% 0.04 256.788)|oklch(55.4% 0.046 257.417)|oklch(44.6% 0.043 257.281)|oklch(37.2% 0.044 257.287)|oklch(27.9% 0.041 260.031)|oklch(20.8% 0.042 265.755)|oklch(12.9% 0.042 264.695)",
+    gray: "oklch(98.5% 0.002 247.839)|oklch(96.7% 0.003 264.542)|oklch(92.8% 0.006 264.531)|oklch(87.2% 0.01 258.338)|oklch(70.7% 0.022 261.325)|oklch(55.1% 0.027 264.364)|oklch(44.6% 0.03 256.802)|oklch(37.3% 0.034 259.733)|oklch(27.8% 0.033 256.848)|oklch(21% 0.034 264.665)|oklch(13% 0.028 261.692)",
+    zinc: "oklch(98.5% 0 0)|oklch(96.7% 0.001 286.375)|oklch(92% 0.004 286.32)|oklch(87.1% 0.006 286.286)|oklch(70.5% 0.015 286.067)|oklch(55.2% 0.016 285.938)|oklch(44.2% 0.017 285.786)|oklch(37% 0.013 285.805)|oklch(27.4% 0.006 286.033)|oklch(21% 0.006 285.885)|oklch(14.1% 0.005 285.823)",
+    neutral: "oklch(98.5% 0 0)|oklch(97% 0 0)|oklch(92.2% 0 0)|oklch(87% 0 0)|oklch(70.8% 0 0)|oklch(55.6% 0 0)|oklch(43.9% 0 0)|oklch(37.1% 0 0)|oklch(26.9% 0 0)|oklch(20.5% 0 0)|oklch(14.5% 0 0)",
+    stone: "oklch(98.5% 0.001 106.423)|oklch(97% 0.001 106.424)|oklch(92.3% 0.003 48.717)|oklch(86.9% 0.005 56.366)|oklch(70.9% 0.01 56.259)|oklch(55.3% 0.013 58.071)|oklch(44.4% 0.011 73.639)|oklch(37.4% 0.01 67.558)|oklch(26.8% 0.007 34.298)|oklch(21.6% 0.006 56.043)|oklch(14.7% 0.004 49.25)"
+  };
+  var SHADES = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950];
+  /* A colour template row (bg-<color>-<shade>) is followed by a row of clickable swatches: theme tokens, then the palette. */
+  function swatchRow(pre, g) {
+    var h = '<div class="sw-theme" data-pre="' + attr(pre) + '" data-g="' + attr(g) + '"></div><div class="sw-grid"><span></span>' +
+      SHADES.map(function (n) { return '<span class="sw-h">' + n + '</span>'; }).join('');
+    Object.keys(PALETTE).forEach(function (name) {
+      var vals = PALETTE[name].split('|');
+      h += '<span class="sw-n">' + name + '</span>' + SHADES.map(function (n, k) {
+        var c = pre + '-' + name + '-' + n;
+        return '<button type="button" class="swatch pickable" tabindex="-1" data-c="' + c + '" data-g="' + attr(g) + '" data-q="' + c + '" title="' + c + '" style="--c:' + vals[k] + '"></button>';
+      }).join('');
+    });
+    return '<tr class="swrow" data-q=""><td class="sw-cell" colspan="2">' + h + '</div></td></tr>';
+  }
   function rowsHTML(rows, ci, ii) {
     return rows.map(function (r) {
       var c = r[0];
+      var sw = /^(-?[a-z-]+)-<color>-<shade>$/.exec(c);
       var isVar = /^[\w-]+:$/.test(c);
       var clickable = c.indexOf('<') === -1 && (isVar || c.slice(-1) !== ':');
       var prop = r[1].indexOf(':') > -1 ? r[1].split(':')[0].trim() : r[1];
@@ -1942,7 +2078,8 @@ forced-colors: | @media (forced-colors: active) |`)
       if (clickable && !isVar) { (groups[g] = groups[g] || []).push(c); }
       var attrs = clickable ? ' class="pickable' + (isVar ? ' vrow' : '') + '" data-c="' + attr(c) + '"' + (isVar ? '' : ' data-g="' + attr(g) + '"') : '';
       var kcell = clickable ? '<button type="button" class="pick" tabindex="-1">' + esc(c) + '</button>' : esc(c);
-      return '<tr data-q="' + attr((r[0] + ' ' + r[1]).toLowerCase()) + '"' + attrs + '><td class="cls">' + kcell + '</td><td class="css">' + esc(r[1]) + '</td></tr>';
+      return '<tr data-q="' + attr((r[0] + ' ' + r[1]).toLowerCase()) + '"' + attrs + '><td class="cls">' + kcell + '</td><td class="css">' + esc(r[1]) + '</td></tr>' +
+        (sw ? swatchRow(sw[1], g) : '');
     }).join('');
   }
   function attr(s) { return esc(s).replace(/"/g, '&quot;'); }
@@ -1970,7 +2107,7 @@ forced-colors: | @media (forced-colors: active) |`)
         var bid = 'itm-' + ci + '-' + ii;
         d.innerHTML = '<table><thead><tr><th colspan="2"><button type="button" class="itm-name" aria-expanded="false" aria-controls="' + bid + '"><span>' + esc(it.n) + '</span>' + CHEV + '</button></th></tr></thead><tbody id="' + bid + '" hidden>' + rowsHTML(it.r, ci, ii) + '</tbody></table>';
         sec.appendChild(d);
-        items.push({ el: d, name: it.n.toLowerCase(), btn: d.querySelector('.itm-name'), body: d.querySelector('tbody'), rows: Array.prototype.slice.call(d.querySelectorAll('tbody tr')) });
+        items.push({ el: d, name: it.n.toLowerCase(), btn: d.querySelector('.itm-name'), body: d.querySelector('tbody'), rows: Array.prototype.slice.call(d.querySelectorAll('tbody tr')), picks: d.querySelectorAll('.pickable') });
       });
       idxCats.push({ el: sec, head: sec.querySelector('.cat-label'), items: items });
       frag.appendChild(sec);
@@ -1993,6 +2130,45 @@ forced-colors: | @media (forced-colors: active) |`)
       if (c.el.hidden) return;
       c.items.forEach(function (it) { if (!it.el.hidden) setOpen(it.btn, it.body, open); });
     });
+  }
+
+  /* ---------- theme token swatches (bg-primary, text-muted-foreground, ...) from the CSS tab ---------- */
+  function themeTokens() {
+    var css = st.css.replace(/\/\*[\s\S]*?\*\//g, ''), vars = {}, toks = [], m;
+    var blk = /(:root|\.dark)\s*\{([^}]*)\}/g;
+    while ((m = blk.exec(css))) {
+      if (m[1] === '.dark' && !st.dark) continue;
+      var re = /--([\w-]+)\s*:\s*([^;]+);/g, x;
+      while ((x = re.exec(m[2]))) { if (m[1] === ':root' && vars[x[1]] !== undefined && st.dark) continue; vars[x[1]] = x[2].trim(); }
+    }
+    var th = /@theme[^{]*\{([^}]*)\}/g;
+    while ((m = th.exec(css))) {
+      var re2 = /--color-([\w-]+)\s*:\s*([^;]+);/g, y;
+      while ((y = re2.exec(m[1]))) {
+        var v = y[2].trim(), vm = /^var\(--([\w-]+)\)$/.exec(v);
+        if (vm) v = vars[vm[1]];
+        if (v && !/^[a-z]+-\d{2,3}$/.test(y[1]) && toks.every(function (t) { return t.n !== y[1]; })) toks.push({ n: y[1], v: v });
+      }
+    }
+    return toks;
+  }
+  var tokKey = null;
+  function renderTokens() {
+    var key = st.css + (st.dark ? '1' : '0');
+    if (key === tokKey) return;
+    tokKey = key;
+    var toks = themeTokens();
+    tokNames = toks.map(function (t) { return t.n; }).sort(function (a, b) { return b.length - a.length; });
+    idxRoot.querySelectorAll('.sw-theme').forEach(function (box) {
+      var pre = box.dataset.pre, g = box.dataset.g;
+      box.innerHTML = toks.map(function (t) {
+        var c = pre + '-' + t.n;
+        return '<button type="button" class="tok pickable" tabindex="-1" data-c="' + attr(c) + '" data-g="' + attr(g) + '" data-q="' + attr(c) + '" title="' + attr(c + ': ' + t.v) + '" style="--c:' + attr(t.v) + '">' + esc(t.n) + '</button>';
+      }).join('');
+    });
+    idxCats.forEach(function (c) { c.items.forEach(function (it) { it.picks = it.el.querySelectorAll('.pickable'); }); });
+    if (idxQ.value) runSearch();
+    refreshMarks();
   }
 
   /* ---------- search ---------- */
@@ -2027,12 +2203,13 @@ forced-colors: | @media (forced-colors: active) |`)
       c.items.forEach(function (it) {
         if (!q) {
           it.el.hidden = false;
-          it.rows.forEach(function (r) { r.hidden = false; });
+          it.rows.forEach(function (r) { r.hidden = false; if (r.classList.contains('swrow')) swFilter(r, ''); });
           setOpen(it.btn, it.body, false);
           return;
         }
         var nameHit = it.name.indexOf(q) !== -1, rowHit = false;
         it.rows.forEach(function (r) {
+          if (r.classList.contains('swrow')) { r.hidden = !(swFilter(r, nameHit ? '' : q) || nameHit); if (!r.hidden) rowHit = rowHit || !nameHit; if (!exact) exact = r.querySelector('.pickable[data-c="' + CSS.escape(q) + '"]'); return; }
           var hit = r.dataset.q.indexOf(q) !== -1;
           if (hit) {
             rowHit = true;
@@ -2063,6 +2240,19 @@ forced-colors: | @media (forced-colors: active) |`)
     if (first && (first === exact || first === typedRow)) first.scrollIntoView({ block: 'nearest' });
     else idxBox.scrollTop = 0;
   }
+  /* Show only the swatches (and palette lines) matching q; returns whether any matched. */
+  function swFilter(row, q) {
+    var any = false, gridAny = false, grid = row.querySelector('.sw-grid'), kids = grid.children, lineHit = false, start = 12;
+    row.querySelectorAll('.tok').forEach(function (t) { var h = !q || t.dataset.q.indexOf(q) > -1; t.hidden = !h; if (h) any = true; });
+    for (var i = start; i < kids.length; i += 12) {
+      lineHit = false;
+      for (var k = 1; k < 12; k++) { var b = kids[i + k], h = !q || b.dataset.q.indexOf(q) > -1; b.toggleAttribute('data-off', !h); if (h) lineHit = true; }
+      for (k = 0; k < 12; k++) kids[i + k].hidden = !lineHit;
+      if (lineHit) { any = true; gridAny = true; }
+    }
+    grid.hidden = !gridAny;
+    return any;
+  }
   function bestRow(q) {
     var rows = visibleRows();
     for (var i = 0; i < rows.length; i++) if ((rows[i].dataset.c || '').toLowerCase().indexOf(q) === 0) return rows[i];
@@ -2073,7 +2263,7 @@ forced-colors: | @media (forced-colors: active) |`)
   /* ---------- index cursor (keyboard) and transient preview ---------- */
   var cur = null;
   function visibleRows() {
-    return Array.prototype.filter.call(idxRoot.querySelectorAll('tr.pickable'), function (r) { return r.offsetParent !== null; });
+    return Array.prototype.filter.call(idxRoot.querySelectorAll('.pickable'), function (r) { return !r.hidden && !r.hasAttribute('data-off') && r.offsetParent !== null; });
   }
   function setCur(row, preview) {
     if (cur) cur.classList.remove('cur');
@@ -2115,7 +2305,7 @@ forced-colors: | @media (forced-colors: active) |`)
 
   var hoverRow = null, trying = null;
   idxRoot.addEventListener('mouseover', function (e) {
-    var row = e.target.closest('tr.pickable');
+    var row = e.target.closest('.pickable');
     if (!row || row === hoverRow) return;
     hoverRow = row;
     tryRow(row);
@@ -2125,7 +2315,7 @@ forced-colors: | @media (forced-colors: active) |`)
     if (document.activeElement === idxQ && cur) tryRow(cur); else untry();
   });
   idxRoot.addEventListener('click', function (e) {
-    var row = e.target.closest('tr.pickable');
+    var row = e.target.closest('.pickable');
     if (!row) return;
     setCur(row);
     commitRow(row);
@@ -2379,7 +2569,17 @@ forced-colors: | @media (forced-colors: active) |`)
     return gs.length === 1 ? gs[0] : null;
   }
   var COLOR_TOK = new RegExp('^(.+?)-(?:' + 'slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose|white|black|transparent|current|inherit' + ')(?:-\\d{2,3})?(?:\\/[\\w.\\[\\]%]+)?$');
-  function colorPrefix(base) { var m = COLOR_TOK.exec(base); return m ? m[1] : ''; }
+  /* Theme token names (primary, muted-foreground, ...) count as colours too, longest first so text-muted-foreground is not read as text-muted + foreground. */
+  var tokNames = [];
+  function colorPrefix(base) {
+    var m = COLOR_TOK.exec(base);
+    if (m) return m[1];
+    for (var i = 0; i < tokNames.length; i++) {
+      var t = tokNames[i], b = base.replace(/\/[\w.\[\]%]+$/, '');
+      if (b.length > t.length + 1 && b.slice(-(t.length + 1)) === '-' + t) return b.slice(0, -(t.length + 1));
+    }
+    return '';
+  }
   /* True when an existing class sets the same thing as the one being applied, under the same variants. */
   function conflicts(t, pn, gn) {
     var pe = parseTok(t);
@@ -2444,7 +2644,7 @@ forced-colors: | @media (forced-colors: active) |`)
       var catHas = false;
       c.items.forEach(function (it) {
         var has = false;
-        it.rows.forEach(function (r) {
+        Array.prototype.forEach.call(it.picks, function (r) {
           var cl = r.dataset.c;
           if (!cl) return;
           var on = r.classList.contains('vrow') ? variant === cl : !!set[v + cl];
@@ -2550,6 +2750,7 @@ forced-colors: | @media (forced-colors: active) |`)
     var prev = snap();
     st.html = s.html; st.css = s.css; chg = null; trying = null;
     save();
+    renderTpls();
     var a = startTags(prev.html), b = startTags(st.html);
     if (prev.css === st.css && a.length === b.length && stripClasses(prev.html) === stripClasses(st.html)) {
       b.forEach(function (t, i) {
@@ -2877,7 +3078,7 @@ forced-colors: | @media (forced-colors: active) |`)
     st.html = st.base = DEF_HTML; st.css = DEF_CSS;
     sel.id = -1; sel.tag = ''; chg = null; trying = null;
     try { frame.contentWindow.postMessage({ tw: 'unselect' }, '*'); } catch (e) {}
-    save(); showTab(st.tab); changed(); renderSel(); refreshMarks(); schedule(50);
+    save(); showTab(st.tab); changed(); renderSel(); refreshMarks(); renderTpls(); schedule(50);
     say('Back to the starter example. Undo brings the previous work back.');
   });
   /* ---------- view mode ---------- */
@@ -3175,6 +3376,98 @@ forced-colors: | @media (forced-colors: active) |`)
   });
   renderSel();
 
+  /* ---------- CSS templates ---------- */
+  var TPLKEY = 'tailwindex-templates';
+  function ownTemplates() { try { var a = JSON.parse(localStorage.getItem(TPLKEY) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
+  function allTemplates() {
+    return TEMPLATES.map(function (t) { return { id: t.id, label: t.label, css: themeCSS(t), dots: [t.light.primary, t.light.background, t.light.accent] }; })
+      .concat(ownTemplates().map(function (t) { return { id: t.id, label: t.label, css: t.css, own: true, dots: [] }; }));
+  }
+  function renderTpls() {
+    $('#tpls').innerHTML = allTemplates().map(function (t) {
+      var on = t.css === st.css;
+      var dots = t.dots.length ? '<span class="dots" aria-hidden="true">' + t.dots.map(function (c) { return '<i style="background:' + attr(c) + '"></i>'; }).join('') + '</span>' : '';
+      var b = '<button type="button" class="tpl" data-tpl="' + attr(t.id) + '" aria-pressed="' + on + '">' + dots + esc(t.label) + '</button>';
+      return t.own ? '<span class="tpl-own">' + b + '<button type="button" class="tpl-del" data-del="' + attr(t.id) + '" aria-label="Delete ' + attr(t.label) + '" title="Delete ' + attr(t.label) + '"><svg class="icon" viewBox="0 0 24 24" style="width:11px;height:11px"><path d="M6 6l12 12M18 6L6 18"/></svg></button></span>' : b;
+    }).join('');
+  }
+  function useCSS(css) {
+    if (css === st.css) return;
+    remember();
+    st.css = css;
+    save();
+    if (st.tab === 'css') { ta.value = st.css; ta.scrollTop = 0; refreshEditor(); }
+    renderTpls();
+    schedule(0);
+  }
+  $('#tpls').addEventListener('click', function (e) {
+    var d = e.target.closest('[data-del]'), b = e.target.closest('[data-tpl]');
+    if (d) {
+      try { localStorage.setItem(TPLKEY, JSON.stringify(ownTemplates().filter(function (t) { return t.id !== d.dataset.del; }))); } catch (x) {}
+      renderTpls();
+      return;
+    }
+    if (!b) return;
+    var t = allTemplates().filter(function (x) { return x.id === b.dataset.tpl; })[0];
+    if (t) { useCSS(t.css); say('Using the ' + t.label + ' template. Undo restores the previous CSS.'); }
+  });
+  function tplForm(open) {
+    $('#tplForm').hidden = !open;
+    $('#tplAdd').setAttribute('aria-expanded', String(open));
+    if (open) { $('#tplName').value = ''; $('#tplName').focus(); }
+  }
+  $('#tplAdd').addEventListener('click', function () { tplForm($('#tplForm').hidden); });
+  $('#tplCancel').addEventListener('click', function () { tplForm(false); });
+  $('#tplForm').addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); tplForm(false); $('#tplAdd').focus(); } });
+  $('#tplForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var own = ownTemplates(), name = $('#tplName').value.trim() || 'My template ' + (own.length + 1);
+    own.push({ id: 'own-' + Date.now(), label: name, css: st.css });
+    try { localStorage.setItem(TPLKEY, JSON.stringify(own)); say('Saved ' + name + ' as a template.'); } catch (x) { say('Browser storage is blocked, so the template could not be saved.'); }
+    tplForm(false);
+    renderTpls();
+  });
+
+  /* ---------- generated CSS: copy and export ---------- */
+  function genText() { return $('#genPre').textContent; }
+  $('#genCopy').addEventListener('click', function () {
+    var b = this;
+    copyText(genText(), function (ok) { b.textContent = ok ? 'Copied' : 'Copy blocked'; setTimeout(function () { b.textContent = 'Copy'; }, 1400); });
+  });
+  $('#genExport').addEventListener('click', function () {
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([genText() + '\n'], { type: 'text/css' }));
+    a.download = 'tailwindex' + (st.gen === 'all' ? '' : '-' + st.gen) + '.css';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+  });
+
+  /* ---------- preview width ---------- */
+  var stageEl = $('#stage');
+  function bp(w) { return w >= 1536 ? '2xl' : w >= 1280 ? 'xl' : w >= 1024 ? 'lg' : w >= 768 ? 'md' : w >= 640 ? 'sm' : 'no breakpoint'; }
+  /* A fixed width wider than the pane is scaled down to fit, so the whole layout stays visible and clickable. */
+  function fitWidth() {
+    var w = st.width, sw = stageEl.clientWidth, sh = stageEl.clientHeight;
+    if (!w) { frame.style.width = ''; frame.style.height = ''; frame.style.transform = ''; }
+    else {
+      var k = Math.min(1, sw / w);
+      frame.style.width = w + 'px';
+      frame.style.height = (sh / k) + 'px';
+      frame.style.transform = k < 1 ? 'scale(' + k + ')' : '';
+    }
+    var real = w || Math.round(frame.getBoundingClientRect().width), sc = w && sw < w ? Math.round(sw / w * 100) : 100;
+    $('#wread').textContent = real ? real + 'px · ' + bp(real) + (sc < 100 ? ' · ' + sc + '%' : '') : '';
+  }
+  function setWidth(w) {
+    st.width = w;
+    stageEl.dataset.fixed = w ? '1' : '';
+    document.querySelectorAll('#widthSeg button').forEach(function (b) { b.setAttribute('aria-pressed', String(Number(b.dataset.w) === w)); });
+    fitWidth();
+    save();
+  }
+  $('#widthSeg').addEventListener('click', function (e) { var b = e.target.closest('button'); if (b) setWidth(Number(b.dataset.w)); });
+  if (window.ResizeObserver) new ResizeObserver(fitWidth).observe(stageEl);
+
   /* ---------- first-run hint, engine status ---------- */
   function hint(show) {
     $('#hint').hidden = !show;
@@ -3203,6 +3496,8 @@ forced-colors: | @media (forced-colors: active) |`)
   syncXtog();
   syncVariantUI();
   syncVer();
+  setWidth(st.width);
+  renderTpls();
   renderGen();
   render();
 })();
