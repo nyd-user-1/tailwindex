@@ -269,7 +269,7 @@ body.dragging iframe { pointer-events: none; }
 .tbl td { padding: 7px 12px; border-top: 1px solid var(--line); vertical-align: top; white-space: nowrap; }
 .tbl tr:first-child td { border-top: 0; }
 .tbl td.k { color: var(--syn-tag); }
-.tbl td.v { white-space: normal; min-width: 15rem; }
+.tbl td.k .d { margin-top: 2px; color: var(--syn-var, #e5a35c); white-space: normal; word-break: break-word; }
 .tbl tr.pickable { cursor: pointer; }
 .tbl tr.pickable:hover td { background: var(--hover); }
 .tbl tr.on td { background: color-mix(in srgb, var(--accent) 16%, transparent); }
@@ -1930,7 +1930,7 @@ forced-colors: | @media (forced-colors: active) |`)
       if (clickable) { (groups[g] = groups[g] || []).push(c); }
       var attrs = clickable ? ' class="pickable" data-c="' + esc(c).replace(/"/g, '&quot;') + '" data-g="' + esc(g).replace(/"/g, '&quot;') + '"' : '';
       var kcell = clickable ? '<button type="button" class="pick">' + esc(c) + '</button>' : esc(c);
-      return '<tr data-q="' + esc((r[0] + ' ' + r[1]).toLowerCase()).replace(/"/g, '&quot;') + '"' + attrs + '><td class="k">' + kcell + '</td><td class="v">' + esc(r[1]) + '</td></tr>';
+      return '<tr data-q="' + esc((r[0] + ' ' + r[1]).toLowerCase()).replace(/"/g, '&quot;') + '"' + attrs + '><td class="k">' + kcell + '<div class="d">' + esc(r[1]) + '</div></td></tr>';
     }).join('');
   }
 
@@ -1950,7 +1950,7 @@ forced-colors: | @media (forced-colors: active) |`)
         var d = document.createElement('div');
         d.className = 'itm';
         var bid = 'itm-' + ci + '-' + ii;
-        d.innerHTML = '<div class="tbl"><table><thead><tr><th colspan="2"><button type="button" class="itm-name" aria-expanded="false" aria-controls="' + bid + '"><span>' + esc(it.n) + '</span>' + CHEV + '</button></th></tr></thead><tbody id="' + bid + '" hidden>' + rowsHTML(it.r, ci, ii) + '</tbody></table></div>';
+        d.innerHTML = '<div class="tbl"><table><thead><tr><th><button type="button" class="itm-name" aria-expanded="false" aria-controls="' + bid + '"><span>' + esc(it.n) + '</span>' + CHEV + '</button></th></tr></thead><tbody id="' + bid + '" hidden>' + rowsHTML(it.r, ci, ii) + '</tbody></table></div>';
         body.appendChild(d);
         items.push({ el: d, name: it.n.toLowerCase(), rows: Array.prototype.slice.call(d.querySelectorAll('tbody tr')) });
       });
